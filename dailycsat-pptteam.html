@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSAT Management Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- SheetJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-color: #060913;
+            --card-bg: rgba(15, 23, 42, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(255, 255, 255, 0.04);
+            
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --success-green: #34d399;
+            --warning-amber: #fbbf24;
+            --danger-red: #f43f5e;
+            
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+	.footer {
+	text-align: right;
+	margin-left: 15px;
+	margin-top: -20px;
+            font-size: 10px;
+            color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #CAE9BE;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.1) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 0 40px 0;
+        }
+
+        .navbar {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-left: -28px;
+            margin-right: -28px;
+            width: calc(100% + 56px);
+            margin-top: -28px;
+            margin-bottom: 24px;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            min-height: 60px;
+        }
+
+
+        .brand {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .nav-tab {
+            padding: 6px 16px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .nav-tab:hover {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .page-content {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        h2 { 
+            font-size: 20px; 
+            font-weight: 800; 
+            letter-spacing: -0.4px; 
+            color: var(--text-main);
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .input-group:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .input-group input, .input-group select {
+            background: transparent;
+            border: none;
+            color: var(--accent-blue);
+            font-weight: 800;
+            font-size: 12px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .input-group select option {
+            background: #0f172a;
+            color: var(--text-main);
+        }
+
+        .multiselect-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .multiselect-btn {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-width: 170px;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+
+        .multiselect-btn:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .multiselect-btn::after {
+            content: "▼";
+            font-size: 8px;
+            color: var(--text-muted);
+        }
+
+        .multiselect-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            min-width: 220px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            padding: 8px 0;
+        }
+
+        .multiselect-dropdown.show {
+            display: block;
+        }
+
+        .multiselect-search-box {
+            padding: 4px 8px 8px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .multiselect-search-box input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        .multiselect-search-box input:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .multiselect-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px 6px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .multiselect-header span:hover {
+            text-decoration: underline;
+        }
+
+        .multiselect-list-wrapper {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .multiselect-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .multiselect-item:hover {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+        }
+
+        .multiselect-item input[type="checkbox"] {
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.05));
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.15);
+        }
+
+        .btn-upload:hover {
+            background: rgba(56, 189, 248, 0.35);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-clear {
+            background: rgba(244, 63, 94, 0.08);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            color: var(--danger-red);
+        }
+
+        .btn-clear:hover {
+            background: rgba(244, 63, 94, 0.25);
+            border-color: rgba(244, 63, 94, 0.4);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 18px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), transparent);
+            opacity: 0.6;
+        }
+
+        .summary-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.15);
+            background: rgba(30, 41, 59, 0.85);
+        }
+
+        .summary-card .lbl { 
+            font-size: 10px; 
+            font-weight: 700; 
+            color: var(--text-muted); 
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .summary-card .val { 
+            font-size: 22px; 
+            font-weight: 800; 
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .summary-card .sub {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Top Performer Banner Section */
+        .top-performer-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 14px;
+        }
+
+        .performer-card {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.75));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .performer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--accent-blue);
+        }
+
+        .performer-card.chat-performer::before {
+            background: var(--accent-purple);
+        }
+
+        .performer-card.call-performer::before {
+            background: var(--success-green);
+        }
+
+        .performer-card:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(56, 189, 248, 0.15);
+        }
+
+        .performer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .performer-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .performer-names {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.3;
+        }
+
+        .performer-score-box {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .performer-score {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .performer-vol {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .has-tooltip { position: relative; }
+        
+        .has-tooltip .custom-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            width: max-content;
+            max-width: 320px;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px;
+            padding: 12px 14px;
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(56, 189, 248, 0.15);
+            z-index: 999999;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            text-shadow: none;
+            font-weight: normal;
+            text-align: left;
+        }
+
+        .has-tooltip .custom-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: rgba(15, 23, 42, 0.98) transparent transparent transparent;
+        }
+
+        tr.tooltip-down .has-tooltip .custom-tooltip,
+        .team-table tr.tooltip-down td .custom-tooltip {
+            bottom: auto !important;
+            top: 125% !important;
+            transform: translateX(-50%) translateY(-8px) !important;
+        }
+
+        tr.tooltip-down .has-tooltip .custom-tooltip::after,
+        .team-table tr.tooltip-down td .custom-tooltip::after {
+            top: auto !important;
+            bottom: 100% !important;
+            border-color: transparent transparent rgba(15, 23, 42, 0.98) transparent !important;
+        }
+
+        .has-tooltip:hover .custom-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        tr.tooltip-down .has-tooltip:hover .custom-tooltip {
+            transform: translateX(-50%) translateY(0) !important;
+        }
+
+        .tooltip-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+        }
+
+        .tooltip-row strong { color: var(--text-main); font-weight: 700; }
+        .tooltip-divider { height: 1px; background: rgba(255, 255, 255, 0.08); margin: 6px 0; }
+
+        .table-section {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .table-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: visible;
+            max-height: none;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            padding-top: 15px;
+            isolation: isolate;
+        }
+
+        .team-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 12px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .team-table th, .team-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            border-right: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .team-table th {
+            background: #0f172a !important;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .sticky-col-1 {
+            position: sticky;
+            left: 0;
+            background: #0d1322;
+            z-index: 5;
+            text-align: left;
+            font-weight: 700;
+            width: 160px;
+            min-width: 160px;
+            color: var(--text-main);
+        }
+
+        .sticky-col-2 {
+            position: sticky;
+            left: 160px;
+            background: #0d1322;
+            z-index: 5;
+            font-weight: 600;
+            color: var(--text-muted);
+            width: 80px;
+            min-width: 80px;
+        }
+
+        .sticky-col-3 {
+            position: sticky;
+            left: 240px;
+            background: #0d1322;
+            z-index: 5;
+            font-weight: 800;
+            border-right: 2px solid rgba(255, 255, 255, 0.1) !important;
+            width: 90px;
+            min-width: 90px;
+        }
+
+        .team-table thead th.sticky-col-1, 
+        .team-table thead th.sticky-col-2, 
+        .team-table thead th.sticky-col-3 { 
+            z-index: 8; 
+            background: #0f172a !important;
+        }
+
+        .team-table tbody tr:hover td.has-tooltip {
+            z-index: 50 !important;
+        }
+        .team-table tbody tr:hover td {
+            background-color: rgba(56, 189, 248, 0.08) !important;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .team-table tbody tr:hover td.sticky-col-1,
+        .team-table tbody tr:hover td.sticky-col-2,
+        .team-table tbody tr:hover td.sticky-col-3 {
+            background-color: #131c31 !important;
+            z-index: 55 !important;
+        }
+
+        .summary-row td {
+            background: #141e33 !important;
+            font-weight: 800 !important;
+            border-top: 2px solid rgba(255, 255, 255, 0.1) !important;
+            position: sticky;
+            bottom: 0;
+            z-index: 4;
+            color: var(--text-main);
+        }
+
+        .summary-row td.sticky-col-1,
+        .summary-row td.sticky-col-2,
+        .summary-row td.sticky-col-3 {
+            z-index: 9;
+            background: #141e33 !important;
+        }
+
+        .heat-cell {
+            font-weight: 700;
+            border-radius: 6px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+        }
+
+        .heat-cell:hover {
+            transform: scale(1.12);
+            z-index: 25;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+            filter: brightness(1.2);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding-top: 4px;
+        }
+
+        .main-card-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.12), 0 20px 50px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-rocket"></i> CSAT Operational Engine
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab active"><i class="fa-solid fa-chart-line"></i>Dashboard CSAT</button>
+                <button class="nav-tab" onclick="window.location.href='https://calculator-pptteam.netlify.app'"><i class="fa-solid fa-square-root-variable"></i> CSAT Calculator</button>
+                <button class="nav-tab" onclick="window.location.href='https://qa-pptteam.netlify.app'"><i class="fa-solid fa-gauge-high"></i>  Dashboard QA</button>
+                <button class="nav-tab" onclick="window.location.href='https://performance-pptteam.netlify.app'"><i class="fa-solid fa-arrow-trend-up"></i>  Dashboard Performance</button>
+		<button class="nav-tab" onclick="window.location.href='https://nc-pptteam.netlify.app'"><i class="fa-solid fa-chart-pie"></i> Dashboard NC</button>
+		<button class="nav-tab" onclick="window.location.href='https://presensi-pptteam.netlify.app'"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="page-content">
+        <div class="main-card-wrapper">
+            
+            <div class="header">
+                <div>
+                    <h2>CSAT & Productivity Team Performance</h2>
+                    <div id="lastUpdated" style="font-size: 11px; color: var(--text-muted); margin-top: 3px;">Memuat data dari server...</div>
+                </div>
+
+                <div class="controls">
+                    <!-- Filter Bulan -->
+                    <div class="input-group">
+                        <span>Bulan</span>
+                        <select id="monthSelect" onchange="handleMonthChange()">
+                            <option value="ALL">Semua Bulan</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Mingguan -->
+                    <div class="input-group">
+                        <span>Minggu</span>
+                        <select id="weekSelect" onchange="handleWeekChange()">
+                            <option value="ALL">Semua Minggu</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <span>Target</span>
+                        <input type="number" id="targetCsat" value="84" style="width: 38px;" onchange="handleTargetChange()">
+                        <span>%</span>
+                    </div>
+
+                    <div class="multiselect-container">
+                        <div class="multiselect-btn" id="multiselectBtn" onclick="toggleAgentDropdown()">
+                            <span id="multiselectBtnText">All Agents Selected</span>
+                        </div>
+                        <div class="multiselect-dropdown" id="multiselectDropdown">
+                            <div class="multiselect-search-box">
+                                <input type="text" id="agentSearchInput" placeholder="Cari nama agent..." oninput="filterAgentList()">
+                            </div>
+                            <div class="multiselect-header">
+                                <span onclick="selectAllAgents(true)">Select All</span>
+                                <span onclick="selectAllAgents(false)">Clear</span>
+                            </div>
+
+                            <div class="multiselect-list-wrapper" id="multiselectList"></div>
+                        </div>
+                    </div>
+
+                    <button onclick="copyFilterLink()" class="btn-action" title="Salin Link dengan Filter Saat Ini">
+                        🔗 Share Filter
+                    </button>
+
+                    <input type="file" id="excelInput" accept=".xlsx, .xls" multiple style="display: none;" onchange="handleFileUpload(event)">
+                    <button id="btnUploadLabel" onclick="document.getElementById('excelInput').click()" class="btn-action btn-upload">
+                        Import Excel (Call/Chat)
+                    </button>
+                    <button onclick="clearStoredData()" class="btn-action btn-clear" title="Hapus Filter Local">
+                        Reset Filter
+                    </button>
+                </div>
+            </div>
+			
+
+            <!-- Top Performer Chat & Call Section -->
+            <div class="top-performer-section">
+                <!-- Top Performer Chat -->
+                <div class="performer-card chat-performer">
+                    <div class="performer-info">
+                        <div class="performer-badge">💬 Top Performer CSAT Chat</div>
+                        <div class="performer-names" id="topChatAgent">-</div>
+                    </div>
+                    <div class="performer-score-box">
+                        <div class="performer-score" id="topChatScore" style="color: var(--accent-purple);">-</div>
+                        <div class="performer-vol" id="topChatVol">Rated: 0</div>
+                    </div>
+                </div>
+
+                <!-- Top Performer Call -->
+                <div class="performer-card call-performer">
+                    <div class="performer-info">
+                        <div class="performer-badge">📞 Top Performer CSAT Call</div>
+                        <div class="performer-names" id="topCallAgent">-</div>
+                    </div>
+                    <div class="performer-score-box">
+                        <div class="performer-score" id="topCallScore" style="color: var(--success-green);">-</div>
+                        <div class="performer-vol" id="topCallVol">Rated: 0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Summary Cards Section WITH TOOLTIPS -->
+            <div class="summary-grid">
+                <!-- Overall CSAT Card -->
+                <div class="summary-card has-tooltip">
+                    <div class="lbl">OVERALL CSAT</div>
+                    <div class="val" id="sumAvgCsat">-</div>
+                    <div class="sub">Gap: <span id="sumGap">-</span></div>
+
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">🎯 Overall Performance</div>
+                        <div class="tooltip-row"><span>Achievement</span><strong id="ttOverallAch">-</strong></div>
+                        <div class="tooltip-row"><span>Target Gap</span><strong id="ttOverallGap">-</strong></div>
+                        <div class="tooltip-row"><span>Target CSAT</span><strong id="ttOverallTarget">80.0%</strong></div>
+                    </div>
+                </div>
+
+                <!-- CSAT Chat Card -->
+                <div class="summary-card has-tooltip">
+                    <div class="lbl">CSAT CHAT (Target 84%)</div>
+                    <div class="val" id="sumChatCsat">-</div>
+                    <div class="sub">Gap: <span id="sumChatGap">-</span></div>
+
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">💬 Chat Metric Details</div>
+                        <div class="tooltip-row"><span>Achievement</span><strong id="ttChatAch">-</strong></div>
+                        <div class="tooltip-row"><span>Target Gap</span><strong id="ttChatGap">-</strong></div>
+                        <div class="tooltip-row"><span>Total Rated</span><strong id="ttChatRatedVol">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- CSAT Call Card -->
+                <div class="summary-card has-tooltip">
+                    <div class="lbl">CSAT CALL (Target 97%)</div>
+                    <div class="val" id="sumCallCsat">-</div>
+                    <div class="sub">Gap: <span id="sumCallGap">-</span></div>
+
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">📞 Call Metric Details</div>
+                        <div class="tooltip-row"><span>Achievement</span><strong id="ttCallAch">-</strong></div>
+                        <div class="tooltip-row"><span>Target Gap</span><strong id="ttCallGap">-</strong></div>
+                        <div class="tooltip-row"><span>Total Rated</span><strong id="ttCallRatedVol">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- Total Interaction Card -->
+                <div class="summary-card has-tooltip">
+                    <div class="lbl">TOTAL INTERACTION</div>
+                    <div class="val" id="sumTotalChats">-</div>
+                    <div class="sub">Chat + Call</div>
+
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">📊 Interaction Details</div>
+                        <div class="tooltip-row"><span>Handled Total</span><strong id="ttHandled">0</strong></div>
+                        <div class="tooltip-row"><span>Rated Total</span><strong><span id="ttRated">0</span> (<span id="ttRatedPct">0%</span>)</strong></div>
+                        <div class="tooltip-row">
+                            <span>🟢 Good / 🔴 Bad</span>
+                            <strong><span id="ttGood" style="color:var(--success-green);">0</span> / <span id="ttBad" style="color:var(--danger-red);">0</span></strong>
+                        </div>
+                        <div class="tooltip-divider"></div>
+                        <div class="tooltip-row"><span style="color:var(--accent-purple); font-weight:700;">💬 Chat Handled</span><strong id="ttChatHandled">0</strong></div>
+                        <div class="tooltip-row"><span style="color:var(--success-green); font-weight:700;">📞 Call Handled</span><strong id="ttCallHandled">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- Active Agent Card -->
+                <div class="summary-card has-tooltip">
+                    <div class="lbl">ACTIVE AGENT</div>
+                    <div class="val" id="sumAgents">-</div>
+                    <div class="sub"><span id="sumAvgChatAgent">-</span> avg/agent</div>
+
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">👥 Team Capacity</div>
+                        <div class="tooltip-row"><span>Active Roster</span><strong id="ttActiveAgents">0</strong></div>
+                        <div class="tooltip-row"><span>Avg Volume/Agent</span><strong id="ttAvgVolAgent">0</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bagian Tabel Matrix CSAT dan Productivity Daily -->
+            <div class="table-section">
+                <!-- Di-render via JS -->
+            </div>
+
+            <div class="footer">
+                <div>CSAT Operational Engine</div><div>Created with ❤️ by <strong>Ikhsan</strong></div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+    const SUPABASE_URL = 'https://uiktjkqqbapqglaxqlmg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpa3Rqa3FxYmFwcWdsYXhxbG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mjk4OTIsImV4cCI6MjEwMTUwNTg5Mn0.PfrgCs3KlJDM5dY5yFshP8L-zbqHQeNEDjp0W6UbUaY';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let parsedPivotData = { 
+        agents: [], 
+        dates: [], 
+        overallMatrix: {},
+        chatMatrix: {},
+        callMatrix: {},
+        rawSessions: {} 
+    };
+    
+    let selectedAgentsSet = new Set();
+    let selectedMonth = 'ALL';
+    let selectedWeek = 'ALL';
+
+    function getISOWeekKey(dateStr) {
+        if (!dateStr || !dateStr.includes('-')) return '';
+        const parts = dateStr.split('-');
+        if (parts.length < 3) return '';
+        
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        if (isNaN(d.getTime())) return '';
+        
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+        const yearStart = new Date(d.getFullYear(), 0, 1);
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadStoredData();
+    });
+
+    function normalizeAgentName(rawName) {
+        if (!rawName) return "";
+        let name = rawName.toString().trim();
+        name = name.replace(/\s+/g, ' ');
+        return name;
+    }
+	
+    function normalizeAgentSource(rawSource) {
+        if (!rawSource) return "";
+        let source = rawSource.toString().trim();
+        return source;
+    }
+
+    async function loadStoredData() {
+        const savedTarget = localStorage.getItem('csat_saved_target');
+        if (savedTarget) {
+            document.getElementById('targetCsat').value = savedTarget;
+        }
+
+        try {
+            const { data, error } = await supabaseClient
+                .from('csat_reports')
+                .select('*')
+                .eq('id', 1)
+                .maybeSingle();
+
+            if (error) {
+                console.error('Gagal mengambil data dari Supabase:', error);
+                updateLastUpdatedLabel(null);
+                return;
+            }
+
+            if (data && data.data) {
+                let parsed = typeof data.data === 'string' ? JSON.parse(data.data) : data.data;
+                parsedPivotData = parsed.pivotData || parsed;
+
+                if (!parsedPivotData.overallMatrix) parsedPivotData.overallMatrix = parsedPivotData.matrix || {};
+                if (!parsedPivotData.chatMatrix) parsedPivotData.chatMatrix = {};
+                if (!parsedPivotData.callMatrix) parsedPivotData.callMatrix = {};
+                if (!parsedPivotData.agents) parsedPivotData.agents = [];
+                if (!parsedPivotData.dates) parsedPivotData.dates = [];
+                if (!parsedPivotData.rawSessions) parsedPivotData.rawSessions = {};
+
+                updateLastUpdatedLabel(parsed.updatedAt || null);
+                
+                populateMonthFilter();
+                populateWeekFilter();
+                populateAgentFilter();
+                processAndRender();
+            } else {
+                updateLastUpdatedLabel(null);
+            }
+        } catch (e) {
+            console.error('Error loading data:', e);
+            updateLastUpdatedLabel(null);
+        }
+    }
+
+    function parseDurationToSeconds(val) {
+        if (!val) return 0;
+        if (typeof val === 'number') {
+            return Math.round(val * 86400);
+        }
+        let str = val.toString().trim();
+        if (str.includes(':')) {
+            let parts = str.split(':').map(Number);
+            if (parts.length === 3) {
+                return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+            } else if (parts.length === 2) {
+                return (parts[0] * 60) + parts[1];
+            }
+        }
+        let parsedNum = parseFloat(str);
+        return isNaN(parsedNum) ? 0 : Math.round(parsedNum);
+    }
+
+    async function handleFileUpload(event) {
+        const files = Array.from(event.target.files);
+        if (files.length === 0) return;
+
+        const uploadBtn = document.getElementById('btnUploadLabel');
+        uploadBtn.innerText = "Memproses Excel...";
+        uploadBtn.style.pointerEvents = 'none';
+
+        let fileNames = [];
+
+        try {
+            let existingRawSessions = {};
+            try {
+                const { data: dbData, error: dbError } = await supabaseClient
+                    .from('csat_reports')
+                    .select('*')
+                    .eq('id', 1)
+                    .maybeSingle();
+
+                if (!dbError && dbData && dbData.data) {
+                    let parsed = typeof dbData.data === 'string' ? JSON.parse(dbData.data) : dbData.data;
+                    let existingPivot = parsed.pivotData || parsed;
+                    if (existingPivot.rawSessions) {
+                        existingRawSessions = existingPivot.rawSessions;
+                    }
+                }
+            } catch (e) {
+                console.error('Gagal mengambil data existing dari Supabase, menggunakan state lokal:', e);
+                existingRawSessions = parsedPivotData.rawSessions || {};
+            }
+
+            let rawSessionsMap = { ...existingRawSessions };
+
+            for (const file of files) {
+                const fileNameLower = file.name.toLowerCase();
+                fileNames.push(file.name);
+
+                let channel = 'other';
+                if (fileNameLower.includes('chat')) channel = 'chat';
+                else if (fileNameLower.includes('call')) channel = 'call';
+
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(new Uint8Array(data), { type: 'array', cellDates: false, cellText: true });
+                
+                workbook.SheetNames.forEach(sheetName => {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false });
+                    
+                    rawRows.forEach(row => {
+                        let name = "";
+                        let source = "";
+                        let date = "";
+                        let ratingNum = null;
+                        let activityOrSessionName = "";
+                        let durationSec = 0;
+
+                        Object.keys(row).forEach(key => {
+                            const k = key.trim().toLowerCase();
+                            const val = row[key];
+
+                            if (
+                                k.includes('call activity name') || 
+                                k.includes('messaging session name') || 
+                                k.includes('session name') || 
+                                k.includes('activity name') || 
+                                k.includes('ticket id') || 
+                                k.includes('interaction id') ||
+                                k === 'id'
+                            ) {
+                                if (val !== undefined && val !== null && val !== "") {
+                                    activityOrSessionName = val.toString().trim();
+                                }
+                            }
+
+                            if (k.includes('session owner') || k.includes('agent') || k.includes('nama') || k.includes('full name') || k.includes('user') || k.includes('petugas')) {
+                                let rawName = val ? val.toString().trim() : "";
+                                name = normalizeAgentName(rawName);
+                            }
+                            if (k.includes('source')) {
+                                let rawSource = val ? val.toString().trim() : "";
+                                source = normalizeAgentSource(rawSource);
+                            }
+
+                            else if (k.includes('start time') || k.includes('created date') || k.includes('date/time open') || k.includes('tgl') || k.includes('tanggal') || k.includes('date') || k.includes('time')) {
+                                if (!date) {
+                                    date = formatExcelDate(val);
+                                }
+                            } 
+                            else if (k.includes('csat rating') || k.includes('survey value number')) {
+                                if (val !== undefined && val !== null && val !== "") {
+                                    const match = val.toString().match(/\d+/);
+                                    if (match) {
+                                        const parsed = parseInt(match[0], 10);
+                                        if (parsed >= 1 && parsed <= 5) {
+                                            ratingNum = parsed;
+                                        }
+                                    }
+                                }
+                            }
+                            else if (k.includes('talk time') || k.includes('talk_time') || k.includes('chat duration') || k.includes('chat_duration') || k.includes('duration')) {
+                                durationSec = parseDurationToSeconds(val);
+                            }
+                        });
+
+                        if (!name || !date) return;
+
+                        let uniqueRowKey = "";
+                        if (activityOrSessionName) {
+                            uniqueRowKey = `${channel}_${activityOrSessionName}`;
+                        } else {
+                            uniqueRowKey = `${channel}_${name}_${date}_${ratingNum !== null ? ratingNum : 'norating'}`;
+                        }
+
+                        if (!rawSessionsMap[uniqueRowKey]) {
+                            rawSessionsMap[uniqueRowKey] = {
+                                channel: channel,
+                                name: name,
+                                date: date,
+                                ratingNum: ratingNum,
+                                duration: durationSec,
+                                source: source
+                            };
+                        } else {
+                            let existingSession = rawSessionsMap[uniqueRowKey];
+                            let existingRating = existingSession.ratingNum;
+
+                            if (existingRating !== null && existingRating !== undefined && existingRating !== "") {
+                                return;
+                            } else if ((existingRating === null || existingRating === undefined || existingRating === "") && ratingNum !== null) {
+                                existingSession.ratingNum = ratingNum;
+                                existingSession.name = name;
+                                existingSession.date = date;
+                                existingSession.duration = durationSec || existingSession.duration;
+                            }
+                        }
+                    });
+                });
+            }
+
+            let uniqueAgents = new Set();
+            let uniqueDates = new Set();
+            let overallMatrix = {};
+            let chatMatrix = {};
+            let callMatrix = {};
+
+            Object.values(rawSessionsMap).forEach(session => {
+                let name = session.name;
+                let date = session.date;
+                let channel = session.channel;
+                let ratingNum = session.ratingNum;
+
+                uniqueAgents.add(name);
+                uniqueDates.add(date);
+
+                const addDataToMatrix = (targetMatrix) => {
+                    if (!targetMatrix[name]) targetMatrix[name] = {};
+                    if (!targetMatrix[name][date]) {
+                        targetMatrix[name][date] = { r3: 0, r12: 0, total: 0, ratedTotal: 0, handledTotal: 0 };
+                    }
+
+                    targetMatrix[name][date].handledTotal += 1;
+
+                    if (ratingNum !== null && ratingNum !== undefined) {
+                        targetMatrix[name][date].ratedTotal += 1;
+                        if (ratingNum === 3 || ratingNum === 4 || ratingNum === 5) {
+                            targetMatrix[name][date].r3 += 1;
+                            targetMatrix[name][date].total += 1;
+                        } else if (ratingNum === 1 || ratingNum === 2) {
+                            targetMatrix[name][date].r12 += 1;
+                            targetMatrix[name][date].total += 1;
+                        }
+                    }
+                };
+
+                if (channel === 'chat') {
+                    addDataToMatrix(chatMatrix);
+                } else if (channel === 'call') {
+                    addDataToMatrix(callMatrix);
+                } else {
+                    addDataToMatrix(overallMatrix);
+                }
+            });
+
+            if (uniqueAgents.size === 0 || uniqueDates.size === 0) {
+                alert('Format file Excel tidak dikenali atau tidak memiliki kolom Agent & Tanggal yang valid!');
+                uploadBtn.innerText = "Import Excel (Call/Chat)";
+                uploadBtn.style.pointerEvents = 'auto';
+                event.target.value = '';
+                return;
+            }
+
+            parsedPivotData = {
+                agents: Array.from(uniqueAgents).sort(),
+                dates: Array.from(uniqueDates).sort((a, b) => new Date(a) - new Date(b)),
+                overallMatrix: overallMatrix,
+                chatMatrix: chatMatrix,
+                callMatrix: callMatrix,
+                rawSessions: rawSessionsMap
+            };
+
+            const timeString = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+            const payload = {
+                pivotData: parsedPivotData,
+                updatedAt: `${timeString} (Merge Excel: ${fileNames.join(', ')})`
+            };
+
+            const { error } = await supabaseClient
+                .from('csat_reports')
+                .upsert({ 
+                    id: 1, 
+                    data: payload
+                });
+
+            if (error) {
+                alert('Gagal mengunggah data ke server Supabase!\n' + error.message);
+                console.error(error);
+            } else {
+                alert('Berhasil menggabungkan dan memperbarui data CSAT!');
+                populateMonthFilter();
+                populateWeekFilter();
+                populateAgentFilter();
+                processAndRender();
+            }
+        } catch (err) {
+            alert('Terjadi kesalahan saat memproses file Excel: ' + err.message);
+            console.error(err);
+        } finally {
+            uploadBtn.innerText = "Import Excel (Call/Chat)";
+            uploadBtn.style.pointerEvents = 'auto';
+            event.target.value = '';
+        }
+    }
+
+    function saveFilterPreference() {
+        const filterArray = Array.from(selectedAgentsSet);
+        localStorage.setItem('csat_saved_agent_filters', JSON.stringify(filterArray));
+        const targetVal = document.getElementById('targetCsat').value;
+        localStorage.setItem('csat_saved_target', targetVal);
+        localStorage.setItem('csat_saved_month', selectedMonth);
+        localStorage.setItem('csat_saved_week', selectedWeek);
+    }
+
+    async function clearStoredData() {
+        if (confirm('Apakah Anda yakin ingin mereset seluruh data tersimpan dan filter lokal?')) {
+            localStorage.removeItem('csat_saved_agent_filters');
+            localStorage.removeItem('csat_saved_target');
+            localStorage.removeItem('csat_saved_month');
+            localStorage.removeItem('csat_saved_week');
+            
+            try {
+                await supabaseClient.from('csat_reports').delete().eq('id', 1);
+            } catch(e) {
+                console.error("Gagal menghapus data supabase:", e);
+            }
+
+            window.history.pushState({}, document.title, window.location.pathname);
+            location.reload();
+        }
+    }
+
+    function updateLastUpdatedLabel(time) {
+        const label = document.getElementById('lastUpdated');
+        if (time) {
+            label.innerText = `Terakhir diperbarui: ${time}`;
+        } else {
+            label.innerText = 'Data belum diunggah di server';
+        }
+    }
+
+    function formatExcelDate(rawDate) {
+        if (!rawDate && rawDate !== 0) return "";
+        
+        if (rawDate instanceof Date && !isNaN(rawDate)) {
+            const d = String(rawDate.getDate()).padStart(2, '0');
+            const m = String(rawDate.getMonth() + 1).padStart(2, '0');
+            const y = rawDate.getFullYear();
+            return `${y}-${m}-${d}`;
+        }
+        
+        if (typeof rawDate === 'number' || (!isNaN(rawDate) && !isNaN(parseFloat(rawDate)))) {
+            const num = parseFloat(rawDate);
+            if (num > 30000 && num < 60000) {
+                const dateObj = XLSX.SSF.parse_date_code(num);
+                if (dateObj) {
+                    const d = String(dateObj.d).padStart(2, '0');
+                    const m = String(dateObj.m).padStart(2, '0');
+                    const y = dateObj.y;
+                    return `${y}-${m}-${d}`;
+                }
+            }
+        }
+
+        let str = rawDate.toString().trim().split(' ')[0].split('T')[0];
+
+        if (str.includes('/')) {
+            const parts = str.split('/');
+            if (parts.length === 3) {
+                let y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                let p1 = parts[0].padStart(2, '0');
+                let p2 = parts[1].padStart(2, '0');
+                
+                if (parseInt(p1) > 12) return `${y}-${p2}-${p1}`;
+                else if (parseInt(p2) > 12) return `${y}-${p1}-${p2}`;
+                return `${y}-${p2}-${p1}`;
+            }
+        }
+
+        if (str.includes('-')) {
+            const parts = str.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return str;
+                if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+        }
+
+        return str;
+    }
+
+    function displayDateLabel(isoDateStr) {
+        if (!isoDateStr) return "";
+        if (isoDateStr.includes('-')) {
+            const parts = isoDateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}`;
+            }
+        }
+        return isoDateStr;
+    }
+
+    function getHeatmapColor(percent, target) {
+        if (percent >= target) return { bg: 'rgba(52, 211, 153, 0.15)', text: '#34d399' };
+        if (percent >= target - 10) return { bg: 'rgba(251, 191, 36, 0.15)', text: '#fbbf24' };
+        return { bg: 'rgba(244, 63, 94, 0.18)', text: '#f43f5e' };
+    }
+
+    function populateMonthFilter() {
+        const monthSelect = document.getElementById('monthSelect');
+        monthSelect.innerHTML = '<option value="ALL">Semua Bulan</option>';
+
+        if (!parsedPivotData || !parsedPivotData.dates || parsedPivotData.dates.length === 0) return;
+
+        const monthSet = new Set();
+        parsedPivotData.dates.forEach(d => {
+            if (!d) return;
+            if (d.includes('-')) {
+                const parts = d.split('-');
+                if (parts.length >= 2 && parts[0].length === 4) {
+                    monthSet.add(`${parts[0]}-${parts[1].padStart(2, '0')}`);
+                }
+            }
+        });
+
+        const sortedMonths = Array.from(monthSet).sort().reverse();
+        sortedMonths.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            const [y, mon] = m.split('-');
+            const dateObj = new Date(parseInt(y), parseInt(mon) - 1, 1);
+            opt.textContent = dateObj.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+            monthSelect.appendChild(opt);
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlMonth = urlParams.get('month');
+        const savedMonth = localStorage.getItem('csat_saved_month');
+
+        if (urlMonth && (urlMonth === 'ALL' || monthSet.has(urlMonth))) selectedMonth = urlMonth;
+        else if (savedMonth && (savedMonth === 'ALL' || monthSet.has(savedMonth))) selectedMonth = savedMonth;
+        else selectedMonth = 'ALL';
+
+        monthSelect.value = selectedMonth;
+    }
+
+    function populateWeekFilter() {
+        const weekSelect = document.getElementById('weekSelect');
+        weekSelect.innerHTML = '<option value="ALL">Semua Minggu</option>';
+
+        if (!parsedPivotData || !parsedPivotData.dates || parsedPivotData.dates.length === 0) return;
+
+        const weekSet = new Set();
+        parsedPivotData.dates.forEach(d => {
+            if (selectedMonth !== 'ALL' && !d.startsWith(selectedMonth)) return;
+            const weekKey = getISOWeekKey(d);
+            if (weekKey) weekSet.add(weekKey);
+        });
+
+        const sortedWeeks = Array.from(weekSet).sort().reverse();
+        sortedWeeks.forEach(w => {
+            const opt = document.createElement('option');
+            opt.value = w;
+            const parts = w.split('-W');
+            opt.textContent = `Week ${parts[1]} (${parts[0]})`;
+            weekSelect.appendChild(opt);
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlWeek = urlParams.get('week');
+        const savedWeek = localStorage.getItem('csat_saved_week');
+
+        if (urlWeek && (urlWeek === 'ALL' || weekSet.has(urlWeek))) selectedWeek = urlWeek;
+        else if (savedWeek && (savedWeek === 'ALL' || weekSet.has(savedWeek))) selectedWeek = savedWeek;
+        else selectedWeek = 'ALL';
+
+        weekSelect.value = selectedWeek;
+    }
+
+    function handleMonthChange() {
+        selectedMonth = document.getElementById('monthSelect').value;
+        populateWeekFilter();
+        saveFilterPreference();
+        processAndRender();
+    }
+
+    function handleWeekChange() {
+        selectedWeek = document.getElementById('weekSelect').value;
+        saveFilterPreference();
+        processAndRender();
+    }
+
+    function toggleAgentDropdown() {
+        const dropdown = document.getElementById('multiselectDropdown');
+        dropdown.classList.toggle('show');
+        if (dropdown.classList.contains('show')) {
+            setTimeout(() => document.getElementById('agentSearchInput').focus(), 50);
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const container = document.querySelector('.multiselect-container');
+        if (container && !container.contains(e.target)) {
+            document.getElementById('multiselectDropdown').classList.remove('show');
+        }
+    });
+
+    function populateAgentFilter() {
+        const listContainer = document.getElementById('multiselectList');
+        listContainer.innerHTML = '';
+        document.getElementById('agentSearchInput').value = '';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlAgents = urlParams.get('agents');
+        const savedFilters = localStorage.getItem('csat_saved_agent_filters');
+
+        if (urlAgents) {
+            selectedAgentsSet = new Set(urlAgents.split(',').map(a => decodeURIComponent(a.trim())));
+        } else if (savedFilters) {
+            try { selectedAgentsSet = new Set(JSON.parse(savedFilters)); } 
+            catch(e) { selectedAgentsSet = new Set(parsedPivotData.agents); }
+        } else {
+            selectedAgentsSet = new Set(parsedPivotData.agents);
+        }
+
+        parsedPivotData.agents.forEach(agent => {
+            const item = document.createElement('label');
+            item.className = 'multiselect-item';
+            item.setAttribute('data-agent-name', agent.toLowerCase());
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = agent;
+            checkbox.checked = selectedAgentsSet.has(agent);
+            checkbox.onchange = () => handleAgentSelectionChange(agent, checkbox.checked);
+
+            item.appendChild(checkbox);
+            item.appendChild(document.createTextNode(agent));
+            listContainer.appendChild(item);
+        });
+
+        updateMultiselectButtonText();
+    }
+
+    function filterAgentList() {
+        const query = document.getElementById('agentSearchInput').value.toLowerCase().trim();
+        document.querySelectorAll('#multiselectList .multiselect-item').forEach(item => {
+            const agentName = item.getAttribute('data-agent-name');
+            item.style.display = agentName.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function handleAgentSelectionChange(agent, isChecked) {
+        if (isChecked) selectedAgentsSet.add(agent);
+        else selectedAgentsSet.delete(agent);
+        updateMultiselectButtonText();
+        saveFilterPreference();
+        processAndRender();
+    }
+
+    function selectAllAgents(shouldSelectAll) {
+        document.querySelectorAll('#multiselectList input[type="checkbox"]').forEach(cb => {
+            cb.checked = shouldSelectAll;
+            if (shouldSelectAll) selectedAgentsSet.add(cb.value);
+        });
+        if (!shouldSelectAll) selectedAgentsSet.clear();
+        updateMultiselectButtonText();
+        saveFilterPreference();
+        processAndRender();
+    }
+
+    function handleTargetChange() {
+        saveFilterPreference();
+        processAndRender();
+    }
+
+    function updateMultiselectButtonText() {
+        const btnText = document.getElementById('multiselectBtnText');
+        const total = parsedPivotData.agents.length;
+        const selectedCount = selectedAgentsSet.size;
+
+        if (selectedCount === 0) btnText.innerText = '0 Agents Selected';
+        else if (selectedCount === total) btnText.innerText = 'All Agents Selected';
+        else btnText.innerText = `${selectedCount} of ${total} Selected`;
+    }
+
+    function copyFilterLink() {
+        if (selectedAgentsSet.size === 0) {
+            alert('Pilih setidaknya 1 agent sebelum menyalin link.');
+            return;
+        }
+
+        const selectedAgentsArray = Array.from(selectedAgentsSet).map(a => encodeURIComponent(a));
+        const url = new URL(window.location.href);
+        url.searchParams.set('agents', selectedAgentsArray.join(','));
+        url.searchParams.set('month', selectedMonth);
+        url.searchParams.set('week', selectedWeek);
+
+        navigator.clipboard.writeText(url.toString()).then(() => {
+            alert('🔗 Link filter khusus berhasil di salin!');
+        }).catch(() => {
+            prompt('Salin link berikut secara manual:', url.toString());
+        });
+    }
+
+    function renderMatrixTable(matrixData, filteredDates, targetVal, isChatTable = false) {
+        let activeAgentsCount = 0;
+        let grandTotalR3 = 0;
+        let grandTotalR12 = 0;
+        let grandTotalRated = 0;
+        let grandTotalHandled = 0;
+        let dailyTotals = {};
+        filteredDates.forEach(d => dailyTotals[d] = { r3: 0, r12: 0, total: 0, rated: 0, handled: 0 });
+
+        let agentSummaryList = [];
+        let bodyHTML = '';
+        let rowIndex = 0;
+
+        parsedPivotData.agents.forEach(agent => {
+            if (!selectedAgentsSet.has(agent)) return;
+
+            const positionClass = rowIndex < 3 ? 'tooltip-down' : '';
+
+            activeAgentsCount++;
+            let agentR3Sum = 0;
+            let agentR12Sum = 0;
+            let agentRatedSum = 0;
+            let agentHandledSum = 0;
+            let cellsHTML = '';
+
+            filteredDates.forEach(date => {
+                const dataObj = matrixData[agent]?.[date];
+                const totalRated = dataObj?.ratedTotal ?? dataObj?.total ?? 0;
+                const totalHandled = dataObj?.handledTotal ?? totalRated;
+                const r3Val = dataObj?.r3 || 0;
+                const r12Val = dataObj?.r12 || 0;
+
+                if (dataObj && totalRated > 0) {
+                    let csatPercent = (r3Val / totalRated) * 100;
+
+                    agentR3Sum += r3Val;
+                    agentR12Sum += r12Val;
+                    agentRatedSum += totalRated;
+                    agentHandledSum += totalHandled;
+
+                    dailyTotals[date].r3 += r3Val;
+                    dailyTotals[date].r12 += r12Val;
+                    dailyTotals[date].total += totalRated;
+                    dailyTotals[date].rated += totalRated;
+                    dailyTotals[date].handled += totalHandled;
+
+                    grandTotalR3 += r3Val;
+                    grandTotalR12 += r12Val;
+                    grandTotalRated += totalRated;
+                    grandTotalHandled += totalHandled;
+
+                    const style = getHeatmapColor(csatPercent, targetVal);
+                    cellsHTML += `<td class="heat-cell has-tooltip" style="background:${style.bg}; color:${style.text};">
+                        ${csatPercent.toFixed(1)}%
+                        <div class="custom-tooltip">
+                            <div class="tooltip-title">${agent} (${displayDateLabel(date)})</div>
+                            <div class="tooltip-row"><span>Handled Total</span><strong>${totalHandled}</strong></div>
+                            <div class="tooltip-row"><span>Rated Total</span><strong>${totalRated}</strong></div>
+                            <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${r3Val}</span> / <span style="color:var(--danger-red);">${r12Val}</span></strong></div>
+                        </div>
+                    </td>`;
+                } else {
+                    if (totalHandled > 0) {
+                        agentHandledSum += totalHandled;
+                        dailyTotals[date].handled += totalHandled;
+                        grandTotalHandled += totalHandled;
+                    }
+                    cellsHTML += `<td style="color: rgba(255,255,255,0.15);">-</td>`;
+                }
+            });
+
+            let agentOverallCsat = 0;
+            let agentDenom = agentR3Sum + agentR12Sum;
+            if (agentDenom > 0) {
+                agentOverallCsat = (agentR3Sum / agentDenom) * 100;
+            }
+
+            if (agentRatedSum > 0) {
+                agentSummaryList.push({
+                    name: agent,
+                    csat: agentOverallCsat,
+                    rated: agentRatedSum
+                });
+            }
+
+            const avgStyle = getHeatmapColor(agentOverallCsat, targetVal);
+            const agentRatedPctVal = agentHandledSum > 0 ? ((agentRatedSum / agentHandledSum) * 100).toFixed(1) + '%' : '0%';
+
+            bodyHTML += `<tr class="${positionClass}">
+                <td class="sticky-col-1">${agent}</td>
+                <td class="sticky-col-2 has-tooltip">
+                    ${agentRatedSum}
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">${agent} (Total Volume)</div>
+                        <div class="tooltip-row"><span>Handled Total</span><strong>${agentHandledSum}</strong></div>
+                        <div class="tooltip-row"><span>Rated Total</span><strong>${agentRatedSum} (${agentRatedPctVal})</strong></div>
+                    </div>
+                </td>
+                <td class="sticky-col-3 has-tooltip" style="color: ${avgStyle.text};">
+                    ${agentRatedSum > 0 ? agentOverallCsat.toFixed(2) + '%' : '-'}
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">${agent} (Total Summary)</div>
+                        <div class="tooltip-row"><span>Handled Total</span><strong>${agentHandledSum}</strong></div>
+                        <div class="tooltip-row"><span>Rated Total</span><strong>${agentRatedSum}</strong></div>
+                        <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${agentR3Sum}</span> / <span style="color:var(--danger-red);">${agentR12Sum}</span></strong></div>
+                    </div>
+                </td>
+                ${cellsHTML}
+            </tr>`;
+
+            rowIndex++;
+        });
+
+        let teamDenom = grandTotalR3 + grandTotalR12;
+        let teamCsatAvg = teamDenom > 0 ? (grandTotalR3 / teamDenom) * 100 : 0;
+        let teamAvgStyle = getHeatmapColor(teamCsatAvg, targetVal);
+
+        let footHTML = `<tr class="summary-row">
+            <td class="sticky-col-1">AVG TIM</td>
+            <td class="sticky-col-2">${grandTotalRated}</td>
+            <td class="sticky-col-3 has-tooltip" style="color: ${teamAvgStyle.text};">
+                ${grandTotalRated > 0 ? teamCsatAvg.toFixed(1) + '%' : '-'}
+                <div class="custom-tooltip">
+                    <div class="tooltip-title">AVG TIM (Total Summary)</div>
+                    <div class="tooltip-row"><span>Handled Total</span><strong>${grandTotalHandled}</strong></div>
+                    <div class="tooltip-row"><span>Rated Total</span><strong>${grandTotalRated}</strong></div>
+                    <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${grandTotalR3}</span> / <span style="color:var(--danger-red);">${grandTotalR12}</span></strong></div>
+                </div>
+            </td>`;
+
+        filteredDates.forEach(date => {
+            const tot = dailyTotals[date];
+            let dayDenom = tot.r3 + tot.r12;
+            if (dayDenom > 0) {
+                const dayAvg = (tot.r3 / dayDenom) * 100;
+                const style = getHeatmapColor(dayAvg, targetVal);
+                const ratedPctVal = tot.handled > 0 ? ((tot.rated / tot.handled) * 100).toFixed(1) + '%' : '0%';
+                
+                footHTML += `<td class="has-tooltip" style="color:${style.text}">${dayAvg.toFixed(1)}%
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">Daily Summary (${displayDateLabel(date)})</div>
+                        <div class="tooltip-row"><span>Handled Total</span><strong>${tot.handled}</strong></div>
+                        <div class="tooltip-row"><span>Rated Total</span><strong>${tot.rated} (${ratedPctVal})</strong></div>
+                        <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${tot.r3}</span> / <span style="color:var(--danger-red);">${tot.r12}</span></strong></div>
+                    </div>
+                </td>`;
+            } else {
+                footHTML += `<td>-</td>`;
+            }
+        });
+        footHTML += `</tr>`;
+
+        return { 
+            bodyHTML, 
+            footHTML, 
+            activeAgentsCount, 
+            grandTotalR3, 
+            grandTotalR12, 
+            grandTotalChats: grandTotalRated, 
+            grandTotalRated, 
+            grandTotalHandled, 
+            dailyTotals,
+            agentSummaryList 
+        };
+    }
+
+    function renderOverallMatrixTable(filteredDates, targetVal) {
+        let activeAgentsCount = 0;
+        let totalOverallChatsAll = 0;
+        let sumTeamChatRated = 0;
+        let sumTeamCallRated = 0;
+        let sumTeamHandled = 0;
+        let sumTeamGood = 0;
+        let sumTeamBad = 0;
+
+        let dailyTotals = {};
+        filteredDates.forEach(d => { 
+            dailyTotals[d] = { chatRated: 0, callRated: 0, handled: 0, r3: 0, r12: 0 };
+        });
+
+        let bodyHTML = '';
+        let rowIndex = 0;
+
+        parsedPivotData.agents.forEach(agent => {
+            if (!selectedAgentsSet.has(agent)) return;
+
+            const positionClass = rowIndex < 3 ? 'tooltip-down' : '';
+
+            activeAgentsCount++;
+            let agentChatTotal = 0;
+            let agentCallTotal = 0;
+            let agentChatR3 = 0;
+            let agentCallR3 = 0;
+            let agentChatR12 = 0;
+            let agentCallR12 = 0;
+            let agentChatHandled = 0;
+            let agentCallHandled = 0;
+        
+            let cellsHTML = '';
+
+            filteredDates.forEach(date => {
+                const chatData = parsedPivotData.chatMatrix?.[agent]?.[date];
+                const callData = parsedPivotData.callMatrix?.[agent]?.[date];
+
+                const chatRated = chatData?.ratedTotal ?? chatData?.total ?? 0;
+                const callRated = callData?.ratedTotal ?? callData?.total ?? 0;
+                const chatHandled = chatData?.handledTotal ?? chatRated;
+                const callHandled = callData?.handledTotal ?? callRated;
+
+                const hasChat = chatData && chatRated > 0;
+                const hasCall = callData && callRated > 0;
+
+                let dayCsat = null;
+                let dayR3 = 0;
+                let dayR12 = 0;
+                let dayRated = 0;
+                let dayHandled = 0;
+
+                let chatCsat = 0;
+                let callCsat = 0;
+
+                if (hasChat) {
+                    agentChatTotal += chatRated;
+                    agentChatR3 += chatData.r3;
+                    agentChatR12 += (chatData.r12 || 0);
+                    agentChatHandled += chatHandled;
+                    dayR3 += chatData.r3;
+                    dayR12 += (chatData.r12 || 0);
+                    dayRated += chatRated;
+                    dayHandled += chatHandled;
+
+                    chatCsat = (chatData.r3 / chatRated) * 100;
+                }
+                if (hasCall) {
+                    agentCallTotal += callRated;
+                    agentCallR3 += callData.r3;
+                    agentCallR12 += (callData.r12 || 0);
+                    agentCallHandled += callHandled;
+                    dayR3 += callData.r3;
+                    dayR12 += (callData.r12 || 0);
+                    dayRated += callRated;
+                    dayHandled += callHandled;
+
+                    callCsat = (callData.r3 / callRated) * 100;
+                }
+
+                if (hasChat && hasCall) {
+                    dayCsat = (chatCsat + callCsat) / 2;
+                } else if (hasChat) {
+                    dayCsat = chatCsat;
+                } else if (hasCall) {
+                    dayCsat = callCsat;
+                }
+
+                if (dayCsat !== null) {
+                    dailyTotals[date].chatRated += chatRated;
+                    dailyTotals[date].callRated += callRated;
+                    dailyTotals[date].handled += dayHandled;
+                    dailyTotals[date].r3 += dayR3;
+                    dailyTotals[date].r12 += dayR12;
+
+                    const style = getHeatmapColor(dayCsat, targetVal);
+                    const ratedPctVal = dayHandled > 0 ? ((dayRated / dayHandled) * 100).toFixed(1) + '%' : '0%';
+
+                    cellsHTML += `<td class="heat-cell has-tooltip" style="background:${style.bg}; color:${style.text};">
+                        ${dayCsat.toFixed(1)}%
+                        <div class="custom-tooltip">
+                            <div class="tooltip-title">${agent} (${displayDateLabel(date)})</div>
+                            <div class="tooltip-row"><span>Handled Total</span><strong>${dayHandled}</strong></div>
+                            <div class="tooltip-row"><span>Rated Total</span><strong>${dayRated} (${ratedPctVal})</strong></div>
+                            <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${dayR3}</span> / <span style="color:var(--danger-red);">${dayR12}</span></strong></div>
+                            ${hasChat ? `<div class="tooltip-divider"></div><div class="tooltip-row"><span style="color:var(--accent-purple);">💬 Chat CSAT</span><strong>${chatCsat.toFixed(1)}%</strong></div>` : ''}
+                            ${hasCall ? `<div class="tooltip-divider"></div><div class="tooltip-row"><span style="color:var(--success-green);">📞 Call CSAT</span><strong>${callCsat.toFixed(1)}%</strong></div>` : ''}
+                        </div>
+                    </td>`;
+                } else {
+                    cellsHTML += `<td style="color: rgba(255,255,255,0.15);">-</td>`;
+                }
+            });
+
+            const totalVol = agentChatTotal + agentCallTotal;
+            const totalAgentHandled = agentChatHandled + agentCallHandled;
+            const agentRatedPctVal = totalAgentHandled > 0 ? ((totalVol / totalAgentHandled) * 100).toFixed(1) + '%' : '0%';
+
+            let agentTotalGood = agentChatR3 + agentCallR3;
+            let agentTotalBad = agentChatR12 + agentCallR12;
+            let agentDenom = agentTotalGood + agentTotalBad;
+            let agentOverallCsat = agentDenom > 0 ? (agentTotalGood / agentDenom) * 100 : null;
+
+            totalOverallChatsAll += totalVol;
+            sumTeamChatRated += agentChatTotal;
+            sumTeamCallRated += agentCallTotal;
+            sumTeamHandled += totalAgentHandled;
+            sumTeamGood += agentTotalGood;
+            sumTeamBad += agentTotalBad;
+
+            if (agentOverallCsat !== null) {
+                const avgStyle = getHeatmapColor(agentOverallCsat, targetVal);
+                bodyHTML += `<tr class="${positionClass}">
+                    <td class="sticky-col-1">${agent}</td>
+                    <td class="sticky-col-2 has-tooltip">
+                        ${totalVol}
+                        <div class="custom-tooltip">
+                            <div class="tooltip-title">${agent}</div>
+                            <div class="tooltip-row"><span>Handled Total</span><strong>${totalAgentHandled}</strong></div>
+                            <div class="tooltip-row"><span>Rated Total</span><strong>${totalVol} (${agentRatedPctVal})</strong></div>
+                        </div>
+                    </td>
+                    <td class="sticky-col-3 has-tooltip" style="color: ${avgStyle.text};">
+                        ${agentOverallCsat.toFixed(2)}%
+                        <div class="custom-tooltip">
+                            <div class="tooltip-title">${agent}</div>
+                            <div class="tooltip-row"><span>Handled Total</span><strong>${totalAgentHandled}</strong></div>
+                            <div class="tooltip-row"><span>Rated Total</span><strong>${totalVol}</strong></div>
+                            <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${agentTotalGood}</span> / <span style="color:var(--danger-red);">${agentTotalBad}</span></strong></div>
+                        </div>
+                    </td>
+                    ${cellsHTML}
+                </tr>`;
+            } else {
+                bodyHTML += `<tr class="${positionClass}">
+                    <td class="sticky-col-1">${agent}</td>
+                    <td class="sticky-col-2">0</td>
+                    <td class="sticky-col-3" style="color: rgba(255,255,255,0.15);">-</td>
+                    ${cellsHTML}
+                </tr>`;
+            }
+
+            rowIndex++;
+        });
+
+        let teamDenom = sumTeamGood + sumTeamBad;
+        let teamCsatAvg = teamDenom > 0 ? (sumTeamGood / teamDenom) * 100 : 0;
+        let teamAvgStyle = getHeatmapColor(teamCsatAvg, targetVal);
+
+        let footHTML = `<tr class="summary-row">
+            <td class="sticky-col-1">AVG TIM</td>
+            <td class="sticky-col-2">${totalOverallChatsAll}</td>
+            <td class="sticky-col-3 has-tooltip" style="color: ${teamAvgStyle.text};">
+                ${teamDenom > 0 ? teamCsatAvg.toFixed(1) + '%' : '-'}
+                <div class="custom-tooltip">
+                    <div class="tooltip-title">AVG TIM (Overall Summary)</div>
+                    <div class="tooltip-row"><span>Handled Total</span><strong>${sumTeamHandled}</strong></div>
+                    <div class="tooltip-row"><span>Rated Total</span><strong>${totalOverallChatsAll}</strong></div>
+                    <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${sumTeamGood}</span> / <span style="color:var(--danger-red);">${sumTeamBad}</span></strong></div>
+                    ${sumTeamChatRated > 0 ? `<div class="tooltip-divider"></div><div class="tooltip-row"><span style="color:var(--accent-purple);">💬 Chat Total</span><strong>${sumTeamChatRated}</strong></div>` : ''}
+                    ${sumTeamCallRated > 0 ? `<div class="tooltip-divider"></div><div class="tooltip-row"><span style="color:var(--success-green);">📞 Call Total</span><strong>${sumTeamCallRated}</strong></div>` : ''}
+                </div>
+            </td>`;
+
+        filteredDates.forEach(date => {
+            const tot = dailyTotals[date];
+            let dayDenom = tot.r3 + tot.r12;
+            if (dayDenom > 0) {
+                const dayAvg = (tot.r3 / dayDenom) * 100;
+                const style = getHeatmapColor(dayAvg, targetVal);
+                const ratedTotal = tot.chatRated + tot.callRated;
+                const ratedPctVal = tot.handled > 0 ? ((ratedTotal / tot.handled) * 100).toFixed(1) + '%' : '0%';
+
+                footHTML += `<td class="has-tooltip" style="color:${style.text}">${dayAvg.toFixed(1)}%
+                    <div class="custom-tooltip">
+                        <div class="tooltip-title">Daily Overall Summary (${displayDateLabel(date)})</div>
+                        <div class="tooltip-row"><span>Handled Total</span><strong>${tot.handled}</strong></div>
+                        <div class="tooltip-row"><span>Rated Total</span><strong>${ratedTotal} (${ratedPctVal})</strong></div>
+                        <div class="tooltip-row"><span>🟢 Good / 🔴 Bad</span><strong><span style="color:var(--success-green);">${tot.r3}</span> / <span style="color:var(--danger-red);">${tot.r12}</span></strong></div>
+                    </div>
+                </td>`;
+            } else {
+                footHTML += `<td>-</td>`;
+            }
+        });
+        footHTML += `</tr>`;
+
+        return { bodyHTML, footHTML, activeAgentsCount, totalOverallChatsAll, teamCsatAvg };
+    }
+
+    // Fungsi Render Tabel Productivity Daily (Tambahan Fitur Baru)
+    function renderProductivityMatrixTable(filteredDates) {
+        let bodyHTML = '';
+        let dailyTotals = {};
+        filteredDates.forEach(d => dailyTotals[d] = { handled: 0 });
+        let grandTotalHandled = 0;
+        let rowIndex = 0;
+
+        parsedPivotData.agents.forEach(agent => {
+            if (!selectedAgentsSet.has(agent)) return;
+            const positionClass = rowIndex < 3 ? 'tooltip-down' : '';
+
+            let agentTotalHandled = 0;
+            let cellsHTML = '';
+
+            filteredDates.forEach(date => {
+                const chatData = parsedPivotData.chatMatrix?.[agent]?.[date];
+                const callData = parsedPivotData.callMatrix?.[agent]?.[date];
+
+                const chatHandled = chatData?.handledTotal ?? (chatData?.ratedTotal ?? chatData?.total ?? 0);
+                const callHandled = callData?.handledTotal ?? (callData?.ratedTotal ?? callData?.total ?? 0);
+                const totalHandled = chatHandled + callHandled;
+
+                if (totalHandled > 0) {
+                    agentTotalHandled += totalHandled;
+                    dailyTotals[date].handled += totalHandled;
+                    grandTotalHandled += totalHandled;
+
+                    cellsHTML += `<td class="heat-cell" style="color: var(--accent-blue);">
+                        ${totalHandled.toLocaleString('id-ID')}
+                    </td>`;
+                } else {
+                    cellsHTML += `<td style="color: rgba(255,255,255,0.15);">-</td>`;
+                }
+            });
+
+            bodyHTML += `<tr class="${positionClass}">
+                <td class="sticky-col-1">${agent}</td>
+                <td class="sticky-col-2">-</td>
+                <td class="sticky-col-3" style="color: var(--accent-blue);">${agentTotalHandled > 0 ? agentTotalHandled.toLocaleString('id-ID') : '-'}</td>
+                ${cellsHTML}
+            </tr>`;
+            rowIndex++;
+        });
+
+        let footHTML = `<tr class="summary-row">
+            <td class="sticky-col-1">TOTAL PRODUKTIVITAS</td>
+            <td class="sticky-col-2">-</td>
+            <td class="sticky-col-3" style="color: var(--accent-blue);">${grandTotalHandled.toLocaleString('id-ID')}</td>`;
+
+        filteredDates.forEach(date => {
+            const tot = dailyTotals[date];
+            footHTML += `<td style="color: var(--accent-blue);">${tot.handled > 0 ? tot.handled.toLocaleString('id-ID') : '-'}</td>`;
+        });
+        footHTML += `</tr>`;
+
+        return { bodyHTML, footHTML };
+    }
+
+    function updateTopPerformers(chatSummaryList, callSummaryList) {
+        const topChatAgentEl = document.getElementById('topChatAgent');
+        const topChatScoreEl = document.getElementById('topChatScore');
+        const topChatVolEl = document.getElementById('topChatVol');
+
+        const topCallAgentEl = document.getElementById('topCallAgent');
+        const topCallScoreEl = document.getElementById('topCallScore');
+        const topCallVolEl = document.getElementById('topCallVol');
+
+        if (chatSummaryList.length === 0) {
+            topChatAgentEl.innerText = '-';
+            topChatScoreEl.innerText = '-';
+            topChatVolEl.innerText = 'Rated: 0';
+        } else {
+            chatSummaryList.sort((a, b) => b.csat - a.csat);
+            const maxCsat = chatSummaryList[0].csat;
+            const topChatTies = chatSummaryList.filter(item => Math.abs(item.csat - maxCsat) < 0.001);
+
+            topChatAgentEl.innerHTML = topChatTies.map(i => i.name).join('<br>');
+            topChatScoreEl.innerText = `${maxCsat.toFixed(1)}%`;
+            topChatVolEl.innerText = topChatTies.length === 1 ? `Rated: ${topChatTies[0].rated}` : `Tied (${topChatTies.length} agents)`;
+        }
+
+        if (callSummaryList.length === 0) {
+            topCallAgentEl.innerText = '-';
+            topCallScoreEl.innerText = '-';
+            topCallVolEl.innerText = 'Rated: 0';
+        } else {
+            callSummaryList.sort((a, b) => b.csat - a.csat);
+            const maxCallCsat = callSummaryList[0].csat;
+            const topCallTies = callSummaryList.filter(item => Math.abs(item.csat - maxCallCsat) < 0.001);
+
+            topCallAgentEl.innerHTML = topCallTies.map(i => i.name).join('<br>');
+            topCallScoreEl.innerText = `${maxCallCsat.toFixed(1)}%`;
+            topCallVolEl.innerText = topCallTies.length === 1 ? `Rated: ${topCallTies[0].rated}` : `Tied (${topCallTies.length} agents)`;
+        }
+    }
+
+    function processAndRender() {
+        if (!parsedPivotData.agents || parsedPivotData.agents.length === 0) return;
+
+        const targetVal = parseFloat(document.getElementById('targetCsat').value) || 80;
+        const TARGET_CHAT = 84;
+        const TARGET_CALL = 97;
+
+        const filteredDates = parsedPivotData.dates.filter(d => {
+            const matchesMonth = (selectedMonth === 'ALL' || d.startsWith(selectedMonth));
+            const matchesWeek = (selectedWeek === 'ALL' || getISOWeekKey(d) === selectedWeek);
+            return matchesMonth && matchesWeek;
+        });
+
+        let headHTML = `<tr>
+            <th class="sticky-col-1">Agent</th>
+            <th class="sticky-col-2">Total</th>
+            <th class="sticky-col-3">CSAT</th>`;
+        filteredDates.forEach(date => { headHTML += `<th>${displayDateLabel(date)}</th>`; });
+        headHTML += `</tr>`;
+
+        // Header khusus untuk tabel Productivity dengan kolom penanda Total Handled
+        let prodHeadHTML = `<tr>
+            <th class="sticky-col-1">Agent</th>
+            <th class="sticky-col-2">-</th>
+            <th class="sticky-col-3">Total Volume</th>`;
+        filteredDates.forEach(date => { prodHeadHTML += `<th>${displayDateLabel(date)}</th>`; });
+        prodHeadHTML += `</tr>`;
+
+        const tableSection = document.querySelector('.table-section');
+        
+        tableSection.innerHTML = `
+            <!-- 1. Average Overall CSAT -->
+            <div class="table-responsive" style="margin-top: 10px;">
+                <div class="table-toolbar" style="padding: 10px 14px 4px 14px;">
+                    <div style="font-weight: 800; color: var(--accent-blue); font-size: 14px;">1. Average Overall CSAT (Chat + Call / 2)</div>
+                    <div class="legend-items">
+                        <div class="legend-item"><div class="legend-dot" style="background:var(--success-green); color:var(--success-green);"></div> ≥ Target</div>
+                        <div class="legend-item"><div class="legend-dot" style="background:var(--warning-amber); color:var(--warning-amber);"></div> Near Target</div>
+                        <div class="legend-item"><div class="legend-dot" style="background:var(--danger-red); color:var(--danger-red);"></div> Below Target</div>
+                    </div>
+                </div>
+                <table class="team-table">
+                    <thead>${headHTML}</thead>
+                    <tbody id="tbodyOverall"></tbody>
+                    <tfoot id="tfootOverall"></tfoot>
+                </table>
+            </div>
+
+            <!-- 2. Average CSAT Chat -->
+            <div class="table-responsive" style="margin-top: 25px;">
+                <div class="table-toolbar" style="padding: 10px 14px 4px 14px;">
+                    <div style="font-weight: 800; color: var(--accent-purple); font-size: 14px;">2. Average CSAT Chat (Target ${TARGET_CHAT}%)</div>
+                </div>
+                <table class="team-table">
+                    <thead>${headHTML}</thead>
+                    <tbody id="tbodyChat"></tbody>
+                    <tfoot id="tfootChat"></tfoot>
+                </table>
+            </div>
+
+            <!-- 3. Average CSAT Inbound Call -->
+            <div class="table-responsive" style="margin-top: 25px;">
+                <div class="table-toolbar" style="padding: 10px 14px 4px 14px;">
+                    <div style="font-weight: 800; color: var(--success-green); font-size: 14px;">3. Average CSAT Inbound Call (Target ${TARGET_CALL}%)</div>
+                </div>
+                <table class="team-table">
+                    <thead>${headHTML}</thead>
+                    <tbody id="tbodyCall"></tbody>
+                    <tfoot id="tfootCall"></tfoot>
+                </table>
+            </div>
+
+            <!-- 4. Productivity Daily (Fitur Baru) -->
+            <div class="table-responsive" style="margin-top: 25px;">
+                <div class="table-toolbar" style="padding: 10px 14px 4px 14px;">
+                    <div style="font-weight: 800; color: var(--accent-blue); font-size: 14px;">4. Productivity Daily (Total Handled Volume)</div>
+                </div>
+                <table class="team-table">
+                    <thead>${prodHeadHTML}</thead>
+                    <tbody id="tbodyProductivity"></tbody>
+                    <tfoot id="tfootProductivity"></tfoot>
+                </table>
+            </div>
+        `;
+
+        const overallRes = renderOverallMatrixTable(filteredDates, targetVal);
+        document.getElementById('tbodyOverall').innerHTML = overallRes.bodyHTML;
+        document.getElementById('tfootOverall').innerHTML = overallRes.footHTML;
+
+        const chatRes = renderMatrixTable(parsedPivotData.chatMatrix || {}, filteredDates, TARGET_CHAT, true);
+        document.getElementById('tbodyChat').innerHTML = chatRes.bodyHTML;
+        document.getElementById('tfootChat').innerHTML = chatRes.footHTML;
+        
+        const callRes = renderMatrixTable(parsedPivotData.callMatrix || {}, filteredDates, TARGET_CALL, false);
+        document.getElementById('tbodyCall').innerHTML = callRes.bodyHTML;
+        document.getElementById('tfootCall').innerHTML = callRes.footHTML;
+
+        // Render Tabel Productivity Daily
+        const productivityRes = renderProductivityMatrixTable(filteredDates);
+        document.getElementById('tbodyProductivity').innerHTML = productivityRes.bodyHTML;
+        document.getElementById('tfootProductivity').innerHTML = productivityRes.footHTML;
+
+        updateTopPerformers(chatRes.agentSummaryList, callRes.agentSummaryList);
+
+        const teamOverallCsat = overallRes.teamCsatAvg;
+        const overallGap = teamOverallCsat - targetVal;
+        const avgCsatEl = document.getElementById('sumAvgCsat');
+        avgCsatEl.innerText = overallRes.activeAgentsCount > 0 ? teamOverallCsat.toFixed(1) + '%' : '-';
+        avgCsatEl.style.color = teamOverallCsat >= targetVal ? 'var(--success-green)' : 'var(--danger-red)';
+
+        const gapEl = document.getElementById('sumGap');
+        gapEl.innerText = overallRes.activeAgentsCount > 0 ? (overallGap >= 0 ? '+' : '') + overallGap.toFixed(1) + '%' : '-';
+        gapEl.style.color = overallGap >= 0 ? 'var(--success-green)' : 'var(--danger-red)';
+
+        document.getElementById('ttOverallAch').innerText = overallRes.activeAgentsCount > 0 ? teamOverallCsat.toFixed(1) + '%' : '-';
+        document.getElementById('ttOverallGap').innerText = overallRes.activeAgentsCount > 0 ? (overallGap >= 0 ? '+' : '') + overallGap.toFixed(1) + '%' : '-';
+        document.getElementById('ttOverallTarget').innerText = targetVal.toFixed(1) + '%';
+
+        const chatCsatAvg = chatRes.grandTotalChats > 0 ? (chatRes.grandTotalR3 / (chatRes.grandTotalR3 + chatRes.grandTotalR12)) * 100 : 0;
+        const chatGap = chatCsatAvg - TARGET_CHAT;
+        const chatCsatEl = document.getElementById('sumChatCsat');
+        chatCsatEl.innerText = chatRes.grandTotalChats > 0 ? chatCsatAvg.toFixed(1) + '%' : '-';
+        chatCsatEl.style.color = chatCsatAvg >= TARGET_CHAT ? 'var(--success-green)' : 'var(--danger-red)';
+
+        const chatGapEl = document.getElementById('sumChatGap');
+        chatGapEl.innerText = chatRes.grandTotalChats > 0 ? (chatGap >= 0 ? '+' : '') + chatGap.toFixed(1) + '%' : '-';
+        chatGapEl.style.color = chatGap >= 0 ? 'var(--success-green)' : 'var(--danger-red)';
+
+        document.getElementById('ttChatAch').innerText = chatRes.grandTotalChats > 0 ? chatCsatAvg.toFixed(1) + '%' : '-';
+        document.getElementById('ttChatGap').innerText = chatRes.grandTotalChats > 0 ? (chatGap >= 0 ? '+' : '') + chatGap.toFixed(1) + '%' : '-';
+        document.getElementById('ttChatRatedVol').innerText = chatRes.grandTotalChats.toLocaleString('id-ID');
+
+        const callCsatAvg = callRes.grandTotalChats > 0 ? (callRes.grandTotalR3 / callRes.grandTotalChats) * 100 : 0;
+        const callGap = callCsatAvg - TARGET_CALL;
+        const callCsatEl = document.getElementById('sumCallCsat');
+        callCsatEl.innerText = callRes.grandTotalChats > 0 ? callCsatAvg.toFixed(1) + '%' : '-';
+        callCsatEl.style.color = callCsatAvg >= TARGET_CALL ? 'var(--success-green)' : 'var(--danger-red)';
+
+        const callGapEl = document.getElementById('sumCallGap');
+        callGapEl.innerText = callRes.grandTotalChats > 0 ? (callGap >= 0 ? '+' : '') + callGap.toFixed(1) + '%' : '-';
+        callGapEl.style.color = callGap >= 0 ? 'var(--success-green)' : 'var(--danger-red)';
+
+        document.getElementById('ttCallAch').innerText = callRes.grandTotalChats > 0 ? callCsatAvg.toFixed(1) + '%' : '-';
+        document.getElementById('ttCallGap').innerText = callRes.grandTotalChats > 0 ? (callGap >= 0 ? '+' : '') + callGap.toFixed(1) + '%' : '-';
+        document.getElementById('ttCallRatedVol').innerText = callRes.grandTotalChats.toLocaleString('id-ID');
+
+        const totalRated = chatRes.grandTotalRated + callRes.grandTotalRated;
+        const totalHandled = Math.max(totalRated, chatRes.grandTotalHandled + callRes.grandTotalHandled);
+        const totalGood = chatRes.grandTotalR3 + callRes.grandTotalR3;
+        const totalBad = chatRes.grandTotalR12 + callRes.grandTotalR12;
+        const ratedPct = totalHandled > 0 ? ((totalRated / totalHandled) * 100).toFixed(1) + '%' : '0%';
+
+        document.getElementById('sumTotalChats').innerText = overallRes.totalOverallChatsAll.toLocaleString('id-ID');
+        document.getElementById('ttHandled').innerText = totalHandled.toLocaleString('id-ID');
+        document.getElementById('ttRated').innerText = totalRated.toLocaleString('id-ID');
+        document.getElementById('ttRatedPct').innerText = ratedPct;
+        document.getElementById('ttGood').innerText = totalGood.toLocaleString('id-ID');
+        document.getElementById('ttBad').innerText = totalBad.toLocaleString('id-ID');
+        document.getElementById('ttChatHandled').innerText = (chatRes.grandTotalHandled || chatRes.grandTotalRated).toLocaleString('id-ID');
+        document.getElementById('ttCallHandled').innerText = (callRes.grandTotalHandled || callRes.grandTotalRated).toLocaleString('id-ID');
+
+        document.getElementById('sumAgents').innerText = overallRes.activeAgentsCount;
+        const avgChatsPerAgent = overallRes.activeAgentsCount > 0 ? Math.round(overallRes.totalOverallChatsAll / overallRes.activeAgentsCount) : 0;
+        document.getElementById('sumAvgChatAgent').innerText = overallRes.activeAgentsCount > 0 ? avgChatsPerAgent.toLocaleString('id-ID') : '-';
+
+        document.getElementById('ttActiveAgents').innerText = overallRes.activeAgentsCount;
+        document.getElementById('ttAvgVolAgent').innerText = avgChatsPerAgent.toLocaleString('id-ID');
+    }
+    </script>
+</body>
+</html>
