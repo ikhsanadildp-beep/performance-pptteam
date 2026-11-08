@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Performance & Live Scrubbing NDSAT Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #030712;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-border-hover: rgba(56, 189, 248, 0.5);
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --success-green: #34d399;
+            --warning-amber: #fbbf24;
+            --danger-red: #f43f5e;
+            --text-main: #f1f5f9;
+            --text-muted: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        body { 
+            background-color: #CAE9BE; 
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.05) 0%, transparent 40%);
+            color: var(--text-main); 
+            min-height: 100vh; 
+            padding: 28px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .blob-1 { 
+            position: fixed;
+            top: -150px; left: -150px; width: 700px; height: 700px; 
+            background: #38bdf8; 
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .blob-2 { 
+            position: fixed;
+            bottom: -150px; right: -150px; width: 700px; height: 700px; 
+            background: #8b5cf6; 
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .main-container { width: 100%; max-width: 1400px; display: flex; flex-direction: column; gap: 24px; }
+        
+        .header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+        .header-card:hover {
+            border-color: var(--card-border-hover);
+            box-shadow: 0 12px 35px rgba(56, 189, 248, 0.12);
+        }
+
+        h2 { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+        p.sub-title { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+        .controls-wrapper { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+        .control-box { 
+            background: rgba(255,255,255,0.02); 
+            border: 1px solid var(--card-border); 
+            padding: 8px 14px; 
+            border-radius: 14px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4px; 
+            transition: all 0.3s ease;
+        }
+        .control-box:hover {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+        .control-box span.box-title { font-size: 10px; font-weight: 700; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.8px; }
+        
+        .controls-inner { display: flex; gap: 8px; align-items: center; }
+        .badge-lalu { background: rgba(148, 163, 184, 0.08); border: 1px solid rgba(148, 163, 184, 0.15); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--text-muted); font-weight: 600; display: flex; gap: 4px; align-items: center; }
+        .badge-lalu span { color: #fff; font-weight: 700; }
+
+        .input-group { background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); padding: 4px 8px; border-radius: 6px; font-size: 11px; display: flex; gap: 6px; align-items: center; transition: border-color 0.2s; }
+        .input-group:hover { border-color: var(--accent-blue); }
+        .input-group select { background: transparent; border: none; color: #fff; font-weight: 700; outline: none; cursor: pointer; }
+        .input-group select option { background: #0f172a; color: #fff; }
+
+        .btn-action { 
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(56, 189, 248, 0.1)); 
+            border: 1px solid rgba(56, 189, 248, 0.4); 
+            color: var(--accent-blue); 
+            padding: 0 18px; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            font-size: 13px; 
+            cursor: pointer; 
+            transition: all 0.3s ease; 
+            height: 44px;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1); 
+        }
+        .btn-action:hover { 
+            background: rgba(56, 189, 248, 0.35); 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25); 
+            border-color: var(--accent-blue);
+        }
+
+        .metrics-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .metric-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 20px 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-card:hover {
+            border-color: var(--card-border-hover);
+            transform: translateY(-3px);
+            box-shadow: 0 14px 35px rgba(56, 189, 248, 0.12);
+        }
+        .metric-card-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+        .metric-card-body {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .metric-card-value {
+            font-size: 28px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .metric-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .metric-badge.success { background-color: rgba(52, 211, 153, 0.12); color: var(--success-green); border: 1px solid rgba(52, 211, 153, 0.25); }
+        .metric-badge.danger { background-color: rgba(244, 63, 94, 0.12); color: var(--danger-red); border: 1px solid rgba(244, 63, 94, 0.25); }
+        .metric-badge.neutral { background-color: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.25); }
+
+        .grid-top { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .grid-bottom { display: grid; grid-template-columns: 3.5fr 6.5fr; gap: 24px; }
+        @media(max-width: 1024px) { 
+            .grid-top { grid-template-columns: 1fr; } 
+            .grid-bottom { grid-template-columns: 1fr; } 
+        }
+
+        .card-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .card-section:hover {
+            border-color: var(--card-border-hover);
+            box-shadow: 0 14px 38px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.06);
+        }
+        .card-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 20px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.2px; }
+        .card-section h3 span, .card-section h3 i { color: var(--accent-blue); transition: transform 0.3s ease; }
+        .card-section:hover h3 i { transform: scale(1.15) rotate(5deg); }
+
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container-donut { position: relative; height: 380px; width: 100%; max-width: 380px; margin: 15px auto; transition: transform 0.3s ease; }
+        .chart-container-donut:hover { transform: scale(1.02); }
+
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-bar input, .filter-bar select { padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; font-size: 13px; color: #fff; outline: none; flex: 1; min-width: 180px; transition: all 0.3s ease; }
+        .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent-blue); background: rgba(56, 189, 248, 0.04); box-shadow: 0 0 12px rgba(56, 189, 248, 0.15); }
+        .filter-bar select option { background: #0f172a; color: #fff; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--card-border); padding: 16px; border-radius: 14px; border-left: 4px solid var(--accent-blue); transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.04); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4); border-color: rgba(56, 189, 248, 0.3); }
+        .stat-card h4 { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .stat-card .value { font-size: 22px; font-weight: 800; color: #fff; }
+
+        .table-responsive { overflow-x: auto; border-radius: 12px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.15); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th, td { padding: 13px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s ease; text-align: center; vertical-align: middle; }
+        th:first-child, td:first-child { text-align: left; }
+        th { background: rgba(15, 23, 42, 0.9); color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 5; text-align: center; white-space: nowrap; }
+        th:first-child, td:first-child { text-align: left; }
+        td.sticky-left { position: sticky; left: 0; background: #0c1222; font-weight: 700; z-index: 4; white-space: nowrap; border-right: 1px solid var(--card-border); }
+        
+        #scrubbing-table th, #scrubbing-table td { white-space: normal; word-break: break-word; }
+        #scrubbing-table td:last-child { min-width: 400px; line-height: 1.6; color: #cbd5e1; }
+
+        tbody tr:not(.group-header):hover td { background: rgba(56, 189, 248, 0.07); color: #fff; }
+        tbody tr:not(.group-header):hover td.sticky-left { background: #0f172a; }
+
+        .navbar {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-left: -28px;
+            margin-right: -28px;
+            width: calc(100% + 56px);
+            margin-top: -28px;
+            margin-bottom: 24px;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            min-height: 60px;
+        }
+
+        .chart-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .chart-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chart-modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border-hover);
+            border-radius: 24px;
+            padding: 30px;
+            width: 90%;
+            max-width: 1200px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+        .chart-modal-overlay.active .chart-modal-content {
+            transform: scale(1);
+        }
+        .chart-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .chart-modal-header h3 {
+            font-size: 18px;
+            color: #fff;
+        }
+        .btn-close-modal {
+            background: rgba(244, 63, 94, 0.15);
+            border: 1px solid rgba(244, 63, 94, 0.3);
+            color: var(--danger-red);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-close-modal:hover {
+            background: var(--danger-red);
+            color: #fff;
+        }
+        .modal-body-container {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            height: calc(100% - 50px);
+        }
+        .btn-expand-chart {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .btn-expand-chart:hover {
+            color: var(--accent-blue);
+        }
+
+        .brand {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-tab {
+            position: relative;
+            padding: 10px 20px; 
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+        }
+
+        .nav-tab:hover {
+            color: #38bdf8; 
+            background: rgba(56, 189, 248, 0.08); 
+            transform: translateY(-1px);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8; 
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .performer-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .perf-tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .perf-tab-btn.active {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-blue);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+        .performer-pane {
+            display: none;
+        }
+        .performer-pane.active {
+            display: block;
+        }
+        .floating-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 8px 16px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.15);
+            backdrop-filter: blur(12px);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .floating-badge:hover {
+            transform: translateY(-2px);
+            border-color: rgba(56, 189, 248, 0.8);
+        }
+
+        .floating-badge span {
+            color: #38bdf8;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .footer {
+            text-align: right;
+            margin-right: 16px;
+            margin-bottom: -10px;
+            font-size: 10px;
+            color: #ffffff;
+        }
+        .badge { display: inline-block; padding: 4px 10px; font-size: 11px; font-weight: 600; border-radius: 20px; background-color: rgba(56, 189, 248, 0.12); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.2); white-space: nowrap; }
+        .group-header { background-color: rgba(56, 189, 248, 0.08) !important; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.3px; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; transition: background 0.3s; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
+    </style>
+</head>
+<body>
+
+    <div class="blob-1"></div>
+    <div class="blob-2"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-bolt"></i>Performance Monitor Engine
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab" onclick="window.location.href='https://dailycsat-pptteam.netlify.app/?agents=Amy%2520Andriyani%2520%28Frontline%2520Chat%29%2CReni%2520Prastiana%2520Sari%2520%28Frontline%2520Sosmed%29%2CAlif%2520Indra%2520Arditya%2520%28Frontline%2520Call%29%2CLista%2520Nadya%2520Imaniar%2520%28Frontline%2520Chat%29%2CMeilinda%2520Mahmudah%2520%28Frontline%2520Chat%29%2CMaria%2520Yustika%2520Pia%2520%28Frontline%2520Sosmed%29%2CYuliana%2520%28Frontline%2520Call%29%2CDoni%2520Mubarok%2520Ramdani%2520%28Frontline%2520Chat%29%2CPriska%2520Novenda%2520Nucifera%2520%28Frontline%2520Call%29%2CRomadhona%2520Herlin%2520Cahya%2520Kusuma%2520%28Frontline%2520Chat%29&month=ALL&week=ALL'"><i class="fa-solid fa-chart-line"></i> Dashboard CSAT</button>
+                <button class="nav-tab" onclick="window.location.href='https://calculator-pptteam.netlify.app'"><i class="fa-solid fa-square-root-variable"></i> CSAT Calculator</button>
+                <button class="nav-tab" onclick="window.location.href='https://qa-pptteam.netlify.app'"><i class="fa-solid fa-gauge-high"></i> Dashboard QA</button>
+                <button class="nav-tab active"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard Performance</button>
+                <button class="nav-tab" onclick="window.location.href='https://nc-pptteam.netlify.app'"><i class="fa-solid fa-chart-pie"></i> Dashboard NC</button>
+                <button class="nav-tab" onclick="window.location.href='https://presensi-pptteam.netlify.app'"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-container" style="margin-top: 24px;">
+        <div class="header-card">
+            <div>
+                <h2>Integrated Performance & Live Scrubbing Dashboard</h2>
+                <p class="sub-title">Status Sistem: <span id="status-info" style="color: var(--success-green); font-weight: 600;">Menghubungkan...</span></p>
+            </div>
+            <div class="controls-wrapper">
+                <div class="control-box">
+                    <span class="box-title">Filter CSAT</span>
+                    <div class="controls-inner">
+                        <div class="badge-lalu">Lalu: <span id="csatPastLabel">-</span></div>
+                        <div class="input-group">
+                            <span>INI:</span>
+                            <select id="csatCurrentWeekSelect" onchange="updatePerformanceDashboard()">
+                                <option value="">Memuat...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-box">
+                    <span class="box-title">Filter QA</span>
+                    <div class="controls-inner">
+                        <div class="badge-lalu">Lalu: <span id="qaPastLabel">-</span></div>
+                        <div class="input-group">
+                            <span>INI:</span>
+                            <select id="qaCurrentWeekSelect" onchange="updatePerformanceDashboard()">
+                                <option value="">Memuat...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-action" onclick="loadAllData()"><i class="fa-solid fa-rotate" style="margin-right: 6px;"></i> Refresh</button>
+            </div>
+        </div>
+        <div class="footer"><div>Created with ❤️ by <strong>Ikhsan</strong></div></div>
+
+        <div class="metrics-overview-grid">
+            <div class="metric-card">
+                <div class="metric-card-header">Avg CSAT</div>
+                <div class="metric-card-body">
+                    <div class="metric-card-value" id="metricAvgCsat">0.0%</div>
+                    <div class="metric-badge neutral" id="metricCsatBadge">-</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-header">Avg QA</div>
+                <div class="metric-card-body">
+                    <div class="metric-card-value" id="metricAvgQa">0.0</div>
+                    <div class="metric-badge neutral" id="metricQaBadge">-</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-header">Total Cases</div>
+                <div class="metric-card-body">
+                    <div class="metric-card-value" id="metricTotalCases">0</div>
+                    <div class="metric-badge neutral" id="metricCasesBadge">-</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-card-header">Agent Improved</div>
+                <div class="metric-card-body">
+                    <div class="metric-card-value" id="metricAgentImproved">0 / 0</div>
+                    <div class="metric-badge success">vs last week</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-top">
+            <div class="card-section">
+                <h3>
+                    <span>Diagram Perbandingan CSAT (%) <i class="fa-solid fa-chart-column"></i></span>
+                    <button class="btn-expand-chart" onclick="openChartModal('csat')" title="Perbesar Diagram"><i class="fa-solid fa-expand"></i></button>
+                </h3>
+                <div class="chart-container"><canvas id="csatComparisonChart"></canvas></div>
+            </div>
+            <div class="card-section">
+                <h3>
+                    <span>Diagram Perbandingan QA Score <i class="fa-solid fa-chart-line"></i></span>
+                    <button class="btn-expand-chart" onclick="openChartModal('qa')" title="Perbesar Diagram"><i class="fa-solid fa-expand"></i></button>
+                </h3>
+                <div class="chart-container"><canvas id="qaComparisonChart"></canvas></div>
+            </div>
+        </div>
+
+        <div class="card-section">
+            <h3>Tabel Komparasi Agent Performance & Trend Progress <i class="fa-solid fa-table-cells"></i></h3>
+            <div class="table-responsive">
+                <table id="comparisonTable">
+                    <thead>
+                        <tr>
+                            <th class="sticky-left" style="z-index: 6; text-align: left;">Nama Agent</th>
+                            <th id="thCsatLalu">CSAT (Lalu)</th>
+                            <th id="thCsatIni">CSAT (Ini)</th>
+                            <th>Trend CSAT</th>
+                            <th id="thQaLalu">QA (Lalu)</th>
+                            <th id="thQaIni">QA (Ini)</th>
+                            <th>Trend QA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                        <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat data performa...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="grid-bottom">
+            <div class="card-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin-bottom: 0;">Proporsi Kategori Kesalahan Scrubbing <i class="fa-solid fa-chart-pie"></i></h3>
+                    <select id="filter-donut-week" onchange="renderDonutChart()" style="padding: 6px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 8px; font-size: 12px; color: #000; outline: none; cursor: pointer;">
+                        <option value="">Semua Week (All)</option>
+                    </select>
+                </div>
+                <div class="chart-container-donut">
+                    <canvas id="scrubbingDonutChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card-section">
+                <h3>Productivity Weekly & Trend Agent <i class="fa-solid fa-bolt"></i></h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="text-align: left;">Nama Agent</th>
+                                <th id="thProdLalu">Minggu Lalu</th>
+                                <th id="thProdIni">Minggu Ini</th>
+                                <th>Trend Total Cases</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productivityTableBody">
+                            <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat produktivitas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION: TABEL TOP PERFORMER AGENT -->
+        <div class="card-section">
+            <h3><span>Top Performer Agent <i class="fa-solid fa-trophy"></i></span></h3>
+            <div class="performer-tabs">
+                <button class="perf-tab-btn active" onclick="switchPerformerTab('chat')">Top Chat</button>
+                <button class="perf-tab-btn" onclick="switchPerformerTab('call')">Top Call</button>
+            </div>
+
+           <div id="pane-chat" class="performer-pane active">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Peringkat</th>
+                                <th style="text-align: left;">Nama Agent</th>
+                                <th>Score Chat</th>
+                                <th>CSAT Chat Murni</th>
+                                <th>QA</th>
+                                <th>AHT Chat</th>
+                                <th>Prod Chat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topChatTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pane-call" class="performer-pane">
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Peringkat</th>
+                                <th style="text-align: left;">Nama Agent</th>
+                                <th>Score Call</th>
+                                <th>CSAT Call Murni</th>
+                                <th>QA</th>
+                                <th>AHT Call</th>
+                                <th>Prod Call</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topCallTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-section">
+            <h3>List Scrubbing Kesalahan & Monitoring (Agent Issue) <i class="fa-solid fa-list-check"></i></h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Total Records</h4>
+                    <div class="value" id="total-records">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--success-green);">
+                    <h4>Total Agents</h4>
+                    <div class="value" id="total-agents">0</div>
+                </div>
+                <div class="stat-card" style="border-left-color: var(--warning-amber);">
+                    <h4>Weeks Active</h4>
+                    <div class="value" id="total-weeks">0</div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" id="search-input" placeholder="Cari MS, Nama, Remarks..." oninput="filterScrubbingTable()">
+                <select id="filter-week" onchange="filterScrubbingTable()"><option value="">Semua Week</option></select>
+                <select id="filter-agent" onchange="filterScrubbingTable()"><option value="">Semua Full Name</option></select>
+            </div>
+
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table id="scrubbing-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">MS</th>
+                            <th style="width: 220px; text-align: left;">Full Name</th>
+                            <th style="width: 130px;">Created Date</th>
+                            <th style="width: 100px;">Week</th>
+                            <th style="text-align: left;">Detail Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat data scrubbing...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Zoom Chart -->
+    <div class="chart-modal-overlay" id="chartModalOverlay" onclick="closeChartModal(event)">
+        <div class="chart-modal-content" onclick="event.stopPropagation()">
+            <div class="chart-modal-header">
+                <h3 id="modalChartTitle">Detail Diagram Perbandingan</h3>
+                <button class="btn-close-modal" onclick="closeChartModal()"><i class="fa-solid fa-xmark" style="margin-right: 5px;"></i> Tutup</button>
+            </div>
+            <div class="modal-body-container">
+                <canvas id="modalChartCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://uiktjkqqbapqglaxqlmg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpa3Rqa3FxYmFwcWdsYXhxbG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mjk4OTIsImV4cCI6MjEwMTUwNTg5Mn0.PfrgCs3KlJDM5dY5yFshP8L-zbqHQeNEDjp0W6UbUaY';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let globalCsatData = { chatMatrix: {}, callMatrix: {}, overallMatrix: {}, rawSessions: {} };
+        let globalQaData = [];
+        let globalScrubData = [];
+        
+        let csatChartInstance = null;
+        let qaChartInstance = null;
+        let donutChartInstance = null;
+        let modalChartInstance = null;
+        let sortedWeeksList = [];
+
+        const agentNicknames = {
+            "Amy Andriyani": "Amy",
+            "Reni Prastiana Sari": "Reni",
+            "Alif Indra Arditya": "Alif",
+            "Lista Nadya Imaniar": "Nadya",
+            "Meilinda Mahmudah": "Meilinda",
+            "Maria Yustika Pia": "Pia",
+            "Yuliana": "Yuliana",
+            "Doni Mubarok Ramdani": "Doni",
+            "Priska Novenda Nucifera": "Priska",
+            "Romadhona Herlin Cahya Kusuma": "Herlin"
+        };
+
+        const targetAgents = Object.keys(agentNicknames);
+
+        function switchPerformerTab(type) {
+            document.querySelectorAll('.perf-tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.performer-pane').forEach(pane => pane.classList.remove('active'));
+
+            if (type === 'chat') {
+                document.querySelectorAll('.perf-tab-btn')[0].classList.add('active');
+                document.getElementById('pane-chat').classList.add('active');
+            } else if (type === 'call') {
+                document.querySelectorAll('.perf-tab-btn')[1].classList.add('active');
+                document.getElementById('pane-call').classList.add('active');
+            }
+        }
+
+        function calculateSpecificCsat(cleanTargetAgent, weekStr, matrixType) {
+            if (!weekStr || weekStr === '-') return 0;
+            let sourceMatrix = globalCsatData[matrixType];
+            if (!sourceMatrix) return 0;
+
+            let totalGood = 0, totalRated = 0;
+            Object.keys(sourceMatrix).forEach(rawAgentKey => {
+                if (cleanAgentName(rawAgentKey).toLowerCase() === cleanAgentName(cleanTargetAgent).toLowerCase()) {
+                    let agentMatrix = sourceMatrix[rawAgentKey];
+                    if (agentMatrix) {
+                        Object.keys(agentMatrix).forEach(dateOrKey => {
+                            if (getISOWeekKey(dateOrKey) === weekStr || dateOrKey === weekStr) {
+                                let dObj = agentMatrix[dateOrKey];
+                                if (dObj) {
+                                    totalGood += Number(dObj.r3 !== undefined ? dObj.r3 : (dObj.good || 0));
+                                    totalRated += Number(dObj.ratedTotal !== undefined ? dObj.ratedTotal : (dObj.total || 0));
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            return totalRated > 0 ? Number(((totalGood / totalRated) * 100).toFixed(1)) : 0;
+        }
+
+        function calculateSpecificCases(cleanTargetAgent, weekStr, matrixType) {
+            if (!weekStr || weekStr === '-') return 0;
+            let sourceMatrix = globalCsatData[matrixType];
+            if (!sourceMatrix) return 0;
+
+            let totalCases = 0;
+            Object.keys(sourceMatrix).forEach(rawAgentKey => {
+                if (cleanAgentName(rawAgentKey).toLowerCase() === cleanAgentName(cleanTargetAgent).toLowerCase()) {
+                    let agentMatrix = sourceMatrix[rawAgentKey];
+                    if (agentMatrix) {
+                        Object.keys(agentMatrix).forEach(dateOrKey => {
+                            if (getISOWeekKey(dateOrKey) === weekStr || dateOrKey === weekStr) {
+                                let dObj = agentMatrix[dateOrKey];
+                                if (dObj) {
+                                    let count = 0;
+                                    if (dObj.handledTotal !== undefined) count = Number(dObj.handledTotal);
+                                    else if (dObj.totalHandled !== undefined) count = Number(dObj.totalHandled);
+                                    else if (dObj.handled !== undefined) count = Number(dObj.handled);
+                                    else if (dObj.total !== undefined) count = Number(dObj.total);
+                                    else if (dObj.ratedTotal !== undefined) count = Number(dObj.ratedTotal);
+                                    totalCases += count;
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+            return totalCases;
+        }
+
+        // --- Helper Fungsi Kontribusi Berdasarkan Target Baru ---
+
+        function calculateCsatContribution(csatVal, target, maxWeight) {
+            if (csatVal >= target) {
+                return maxWeight;
+            } else {
+                let diff = target - csatVal;
+                let penalty = diff * (maxWeight / 5);
+                return Math.max(0, maxWeight - penalty);
+            }
+        }
+
+        function calculateQaContribution(qaVal, target = 99, maxWeight = 10) {
+            if (qaVal >= target) return maxWeight;
+            let diff = target - qaVal;
+            let penalty = diff * (maxWeight / 14);
+            return Math.max(0, maxWeight - penalty);
+        }
+
+        function calculateAhtContribution(ahtVal, targetMax, maxWeight = 5) {
+            if (ahtVal <= targetMax && ahtVal > 0) {
+                return maxWeight;
+            } else if (ahtVal === 0) {
+                return 0;
+            } else {
+                let diff = ahtVal - targetMax;
+                let penalty = diff * (maxWeight / 7.5);
+                return Math.max(0, maxWeight - penalty);
+            }
+        }
+
+        function calculateProductivityContribution(prodVal, target, maxWeight) {
+            if (prodVal >= target) {
+                return maxWeight;
+            } else {
+                let diff = target - prodVal;
+                let penalty = diff * (maxWeight / (target * 0.25));
+                return Math.max(0, maxWeight - penalty);
+            }
+        }
+
+        function getCsatChatCont(val) {
+    if (val >= 83) return 5;
+    if (val >= 82) return 4;
+    if (val >= 81) return 3;
+    if (val >= 80) return 2;
+    return 1;
+}
+
+function getCsatCallCont(val) {
+    if (val >= 98) return 5;
+    if (val >= 97) return 4;
+    if (val >= 96) return 3;
+    if (val >= 95) return 2;
+    return 1;
+}
+
+function getQaCont(val) {
+    if (val >= 95) return 5;
+    if (val >= 90) return 4;
+    if (val >= 85) return 3;
+    if (val >= 80) return 2;
+    return 1;
+}
+
+function getProdWaCont(val) {
+    if (val >= 175) return 5;
+    if (val >= 165) return 4;
+    if (val >= 155) return 3;
+    if (val >= 145) return 2;
+    return 1;
+}
+
+function getProdSosmedCont(val) {
+    if (val >= 60) return 5;
+    if (val >= 55) return 4;
+    if (val >= 50) return 3;
+    if (val >= 45) return 2;
+    return 1;
+}
+
+function getProdCallCont(val) {
+    if (val >= 100) return 5;
+    if (val >= 95) return 4;
+    if (val >= 90) return 3;
+    if (val >= 85) return 2;
+    return 1;
+}
+
+function getAhtChatCont(val) {
+    if (val <= 0) return 0;
+    if (val <= 15) return 5;
+    if (val <= 17.5) return 4;
+    if (val <= 20) return 3;
+    if (val <= 22.5) return 2;
+    return 1;
+}
+
+function getAhtCallCont(val) {
+    if (val <= 0) return 0;
+    if (val <= 4) return 5;
+    if (val <= 4.5) return 4;
+    if (val <= 5) return 3;
+    if (val <= 5.5) return 2;
+    return 1;
+}
+
+// --- RENDER TOP PERFORMER DENGAN TIER 1-5 & WEIGHT % ---
+
+const sosmedAgentNames = ["Maria Yustika Pia"];
+
+function renderTopPerformers(currentWeek) {
+    const currentQaWeek = document.getElementById('qaCurrentWeekSelect').value;
+    let chatList = [];
+    let callList = [];
+
+    targetAgents.forEach(agent => {
+        let csatChatVal = calculateSpecificCsat(agent, currentWeek, 'chatMatrix');
+        let casesChatVal = calculateSpecificCases(agent, currentWeek, 'chatMatrix');
+        let ahtChatVal = getAverageDurationForAgentAndWeek(agent, currentWeek, 'chat');
+        
+        // --- PENENTUAN STRICT SOSMED vs WHATSAPP ---
+        // Jika nama agent masuk dalam daftar Agent Sosmed, maka set Sosmed. Jika bukan, otomatis 100% WhatsApp!
+        let isSosmed = sosmedAgentNames.some(sName => sName.toLowerCase() === agent.toLowerCase());
+        let isWhatsApp = !isSosmed;
+
+        if (!(csatChatVal === 0 && ahtChatVal === 0 && casesChatVal === 0)) {
+            let qaRow = findQARowForAgent(agent);
+            let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+            let qaVal = Number(qaWeeks[currentQaWeek]) || 0; 
+            if (qaVal > 0 && qaVal <= 10) qaVal = qaVal * 10;
+
+            let csatCont = getCsatChatCont(csatChatVal); // Target 84% (Bobot 15%)
+            let qaCont = getQaCont(qaVal);               // Target 99 (Bobot 10%)
+
+            // Penentuan Target & Kontribusi Prod berdasarkan status isSosmed
+            let prodTarget, prodCont, prodWeight;
+            if (isSosmed) {
+                prodTarget = 60;
+                prodCont = getProdSosmedCont(casesChatVal);
+                prodWeight = 5; // Bobot Prod Sosmed
+            } else {
+                prodTarget = 175;  // Default untuk semua agent Chat/WA/Live Chat
+                prodCont = getProdWaCont(casesChatVal);
+                prodWeight = 5;    // Bobot Prod WA
+            }
+
+            let ahtTarget = 15;
+            let ahtWeight = isSosmed ? 15 : 5; // AHT Sosmed 15%, WA 5%
+            let ahtCont = getAhtChatCont(ahtChatVal);
+
+            let csatWeight = 15;
+            let qaWeight = 10;
+
+            let totalWeight = csatWeight + qaWeight + ahtWeight + prodWeight;
+            let scoreChat = ((csatCont * csatWeight) + (qaCont * qaWeight) + (ahtCont * ahtWeight) + (prodCont * prodWeight)) / totalWeight;
+
+            chatList.push({ 
+                agent, 
+                score: scoreChat, 
+                csat: csatChatVal, 
+                qa: qaVal, 
+                aht: ahtChatVal.toFixed(1) + 'm', 
+                prod: casesChatVal,
+                targetProd: prodTarget,
+                breakdown: {
+                    csatW: csatCont,
+                    qaW: qaCont,
+                    ahtW: ahtCont,
+                    prodW: prodCont
+                }
+            });
+        }
+
+        // --- CHANNEL CALL ---
+        let csatCallVal = calculateSpecificCsat(agent, currentWeek, 'callMatrix');
+        let casesCallVal = calculateSpecificCases(agent, currentWeek, 'callMatrix');
+        let ahtCallVal = getAverageDurationForAgentAndWeek(agent, currentWeek, 'call');
+
+        if (!(csatCallVal === 0 && ahtCallVal === 0 && casesCallVal === 0)) {
+            let qaRow = findQARowForAgent(agent);
+            let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+            let qaVal = Number(qaWeeks[currentQaWeek]) || 0; 
+            if (qaVal > 0 && qaVal <= 10) qaVal = qaVal * 10;
+
+            let csatCont = getCsatCallCont(csatCallVal);
+            let qaCont = getQaCont(qaVal);
+            let ahtCont = getAhtCallCont(ahtCallVal);
+            let prodCont = getProdCallCont(casesCallVal);
+
+            let csatWeight = isSosmed ? 10 : 15; // Sosmed 10%, WhatsApp tetap 15%
+            let qaWeight = 10;
+            let ahtWeight = isSosmed ? 15 : 5;
+            let prodWeight = 5;
+
+            let totalWeight = csatWeight + qaWeight + ahtWeight + prodWeight;
+            let scoreCall = ((csatCont * csatWeight) + (qaCont * qaWeight) + (ahtCont * ahtWeight) + (prodCont * prodWeight)) / totalWeight;
+
+            callList.push({ 
+                agent, 
+                score: scoreCall, 
+                csat: csatCallVal, 
+                qa: qaVal, 
+                aht: ahtCallVal.toFixed(1) + 'm',
+                prod: casesCallVal,
+                targetProd: 100,
+                breakdown: {
+                    csatW: csatCont,
+                    qaW: qaCont,
+                    ahtW: ahtCont,
+                    prodW: prodCont
+                }
+            });
+        }
+    });
+
+    chatList.sort((a, b) => b.score - a.score);
+    callList.sort((a, b) => b.score - a.score);
+
+    populatePerformerTable('topChatTableBody', chatList, 'chat');
+    populatePerformerTable('topCallTableBody', callList, 'call');
+}        function getAverageDurationForAgentAndWeek(agentName, weekStr, channelType) {
+            let totalSec = 0;
+            let count = 0;
+            let rawSessions = globalCsatData.rawSessions || {};
+
+            Object.entries(rawSessions).forEach(([sessionId, session]) => {
+                let sName = cleanAgentName(session.name || session.fullName || '');
+                let sDate = session.date || '';
+                let sWeek = getISOWeekKey(sDate);
+                
+                let sIdLower = sessionId.toLowerCase();
+                let isChatSession = sIdLower.includes('chat_ms') || sIdLower.startsWith('ms');
+                let isCallSession = sIdLower.includes('call_ca') || sIdLower.startsWith('ca');
+                
+                let detectedChannel = isChatSession ? 'chat' : (isCallSession ? 'call' : (session.channel || '').toLowerCase());
+
+                if (sName.toLowerCase() === agentName.toLowerCase() && sWeek === weekStr && detectedChannel === channelType) {
+                    let duration = Number(session.duration || session.handlingTime || 0);
+                    if (duration > 0) {
+                        totalSec += duration;
+                        count++;
+                    }
+                }
+            });
+
+            if (count === 0) return 0.0;
+            return Number(((totalSec / count) / 60).toFixed(1));
+        }
+
+        function populatePerformerTable(tbodyId, dataList, type) {
+            const tbody = document.getElementById(tbodyId);
+            tbody.innerHTML = '';
+
+            if (dataList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Tidak ada agent yang aktif pada channel ini.</td></tr>`;
+                return;
+            }
+
+            dataList.forEach((item, index) => {
+                let badgeRank = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+                let tr = document.createElement('tr');
+                let b = item.breakdown;
+
+                tr.innerHTML = `
+                    <td style="font-weight:700; text-align:center;">${badgeRank}</td>
+                    <td style="font-weight:600; text-align:left;">${item.agent}</td>
+                    <td style="font-weight:800; color:${type === 'chat' ? 'var(--success-green)' : 'var(--accent-purple)'}; text-align:center;">
+                        ${item.score.toFixed(1)}
+                    </td>
+                    <td style="text-align:center;">${item.csat}% <br><span style="font-size:10px; color:var(--text-muted);">(Cont: ${b.csatW})</span></td>
+                    <td style="text-align:center;">${item.qa} <br><span style="font-size:10px; color:var(--text-muted);">(Cont: ${b.qaW})</span></td>
+                    <td style="text-align:center;">${item.aht} <br><span style="font-size:10px; color:var(--text-muted);">(Skor: ${b.ahtW})</span></td>
+                    <td style="text-align:center;">${item.prod} / <span style="color:var(--accent-blue)">${item.targetProd}</span> <br><span style="font-size:10px; color:var(--text-muted);">(Cont: ${b.prodW})</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function cleanAgentName(name) {
+            if (!name) return '';
+            return name.replace(/\s*\(.*?\)\s*/g, '').trim();
+        }
+
+        function getShortAgentName(fullName) {
+            let clean = cleanAgentName(fullName);
+            if (agentNicknames[clean]) {
+                return agentNicknames[clean];
+            }
+            let parts = clean.split(' ');
+            return parts[0];
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadAllData();
+        });
+
+        function loadAllData() {
+            loadSupabaseData();
+            loadSheetData();
+        }
+
+        async function loadSupabaseData() {
+            try {
+                const { data: csatRes } = await supabaseClient.from('csat_reports').select('*').limit(1).maybeSingle();
+                if (csatRes && csatRes.data) {
+                    let parsed = typeof csatRes.data === 'string' ? JSON.parse(csatRes.data) : csatRes.data;
+                    globalCsatData = parsed.pivotData || parsed;
+                }
+
+                const { data: qaRes } = await supabaseClient.from('qa_matrix').select('*');
+                if (qaRes && Array.isArray(qaRes)) {
+                    globalQaData = qaRes;
+                }
+
+                extractAndSortWeeks();
+                populateWeekDropdowns();
+                updatePerformanceDashboard();
+            } catch (err) {
+                console.error("Gagal mengambil data Supabase:", err);
+            }
+        }
+
+        function loadSheetData() {
+            document.getElementById('status-info').textContent = 'Mengambil data Spreadsheet...';
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwH2vOyCSXNBW6oTJDGZV4yb3j3YIdCe21l5NqhMeum9HXaSfi6ZB439TqPw3g_YbSUUA/exec'; 
+
+            fetch(APPS_SCRIPT_URL)
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    globalScrubData = data || [];
+                    document.getElementById('status-info').textContent = 'Terhubung (Live)';
+                    document.getElementById('status-info').style.color = '#34d399';
+                    initScrubbingDashboard();
+                })
+                .catch(err => {
+                    console.error('Gagal mengambil data dari Apps Script:', err);
+                    document.getElementById('status-info').textContent = 'Gagal Terhubung';
+                    document.getElementById('status-info').style.color = '#f43f5e';
+                });
+        }
+
+        function getISOWeekKey(dateStr) {
+            if (!dateStr || !dateStr.includes('-')) return '';
+            const parts = dateStr.split('-');
+            if (parts.length < 3) return '';
+            const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            if (isNaN(d.getTime())) return '';
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            return `Week ${Math.ceil((((d - yearStart) / 86400000) + 1) / 7)}`;
+        }
+
+        function extractAndSortWeeks() {
+            let weeksSet = new Set();
+            if (globalQaData) {
+                globalQaData.forEach(row => {
+                    if (row.week_data) Object.keys(row.week_data).forEach(w => weeksSet.add(w.trim()));
+                });
+            }
+            ['chatMatrix', 'callMatrix', 'overallMatrix'].forEach(mKey => {
+                let mat = globalCsatData[mKey];
+                if (mat) {
+                    Object.values(mat).forEach(agentDates => {
+                        if (agentDates) Object.keys(agentDates).forEach(d => { let w = getISOWeekKey(d); if(w) weeksSet.add(w); });
+                    });
+                }
+            });
+            sortedWeeksList = Array.from(weeksSet).sort((a, b) => (parseInt(a.replace(/[^0-9]/g, '')) || 0) - (parseInt(b.replace(/[^0-9]/g, '')) || 0));
+        }
+
+        function populateWeekDropdowns() {
+            const csatCur = document.getElementById('csatCurrentWeekSelect');
+            const qaCur = document.getElementById('qaCurrentWeekSelect');
+            csatCur.innerHTML = ''; 
+            qaCur.innerHTML = '';
+            
+            if (sortedWeeksList.length === 0) {
+                csatCur.innerHTML = '<option value="">Tidak ada data</option>';
+                qaCur.innerHTML = '<option value="">Tidak ada data</option>';
+                return;
+            }
+
+            sortedWeeksList.forEach((w, idx) => {
+                let opt1 = document.createElement('option'); 
+                opt1.value = w; 
+                opt1.textContent = w;
+                if (idx === sortedWeeksList.length - 1) opt1.selected = true;
+                csatCur.appendChild(opt1);
+
+                let opt2 = document.createElement('option'); 
+                opt2.value = w; 
+                opt2.textContent = w;
+                if (idx === sortedWeeksList.length - 1) opt2.selected = true;
+                qaCur.appendChild(opt2);
+            });
+
+            updateDefaultQaSelection();
+        }
+
+        function updateDefaultQaSelection() {
+            const csatCur = document.getElementById('csatCurrentWeekSelect').value;
+            const qaCurSelect = document.getElementById('qaCurrentWeekSelect');
+            
+            if (csatCur && sortedWeeksList.includes(csatCur)) {
+                qaCurSelect.value = csatCur;
+            } else if (sortedWeeksList.length > 0) {
+                qaCurSelect.value = sortedWeeksList[sortedWeeksList.length - 1];
+            }
+        }
+
+        function getPreviousWeek(currentWeek) {
+            let idx = sortedWeeksList.indexOf(currentWeek);
+            return idx > 0 ? sortedWeeksList[idx - 1] : '-';
+        }
+
+        function getWeekNumber(weekStr) {
+            if (!weekStr) return 0;
+            const match = weekStr.match(/\d+/);
+            return match ? parseInt(match[0]) : 0;
+        }
+
+        function getCustomCsatDisplayValue(agentName, weekStr) {
+            let cleanName = cleanAgentName(agentName).toLowerCase();
+            let weekNum = getWeekNumber(weekStr);
+            if (cleanName.includes("gusti paksi agung samudro") && weekNum === 34) return "Cuti";
+            return null;
+        }
+
+        // --- FUNGSI TAMBAHAN PERBAIKAN ERROR ---
+        function getCustomCasesDisplayValue(agentName, weekStr) {
+            let cleanName = cleanAgentName(agentName).toLowerCase();
+            let weekNum = getWeekNumber(weekStr);
+            if (cleanName.includes("gusti paksi agung samudro") && weekNum === 34) return "Cuti";
+            return null;
+        }
+
+        function calculateCsatForAgentAndWeek(cleanTargetAgent, weekStr) {
+            if (!weekStr || weekStr === '-') return 0;
+            let customVal = getCustomCsatDisplayValue(cleanTargetAgent, weekStr);
+            if (customVal !== null) return 0;
+
+            let totalGood = 0, totalRated = 0;
+            ['chatMatrix', 'callMatrix', 'overallMatrix'].forEach(matrixKey => {
+                let sourceMatrix = globalCsatData[matrixKey];
+                if (sourceMatrix) {
+                    Object.keys(sourceMatrix).forEach(rawAgentKey => {
+                        if (cleanAgentName(rawAgentKey).toLowerCase() === cleanAgentName(cleanTargetAgent).toLowerCase()) {
+                            let agentMatrix = sourceMatrix[rawAgentKey];
+                            if (agentMatrix) {
+                                Object.keys(agentMatrix).forEach(dateOrKey => {
+                                    if (getISOWeekKey(dateOrKey) === weekStr || dateOrKey === weekStr) {
+                                        let dObj = agentMatrix[dateOrKey];
+                                        if (dObj) {
+                                            totalGood += Number(dObj.r3 !== undefined ? dObj.r3 : (dObj.good || 0));
+                                            totalRated += Number(dObj.ratedTotal !== undefined ? dObj.ratedTotal : (dObj.total || 0));
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+            return totalRated > 0 ? Number(((totalGood / totalRated) * 100).toFixed(1)) : 0;
+        }
+
+        function getTotalCasesForAgentAndWeek(cleanTargetAgent, weekStr) {
+            if (!weekStr || weekStr === '-') return 0;
+            let totalAllCases = 0;
+            ['chatMatrix', 'callMatrix', 'overallMatrix'].forEach(matrixKey => {
+                let sourceMatrix = globalCsatData[matrixKey];
+                if (sourceMatrix) {
+                    Object.keys(sourceMatrix).forEach(rawAgentKey => {
+                        if (cleanAgentName(rawAgentKey).toLowerCase() === cleanTargetAgent.toLowerCase()) {
+                            let agentMatrix = sourceMatrix[rawAgentKey];
+                            if (agentMatrix) {
+                                Object.keys(agentMatrix).forEach(dateOrKey => {
+                                    if (getISOWeekKey(dateOrKey) === weekStr || dateOrKey === weekStr) {
+                                        let dObj = agentMatrix[dateOrKey];
+                                        if (dObj) {
+                                            let count = 0;
+                                            if (dObj.handledTotal !== undefined) count = Number(dObj.handledTotal);
+                                            else if (dObj.totalHandled !== undefined) count = Number(dObj.totalHandled);
+                                            else if (dObj.handled !== undefined) count = Number(dObj.handled);
+                                            else if (dObj.total !== undefined) count = Number(dObj.total);
+                                            else if (dObj.ratedTotal !== undefined) count = Number(dObj.ratedTotal);
+                                            totalAllCases += count;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+            return totalAllCases;
+        }
+
+        function findQARowForAgent(cleanTargetAgent) {
+            if (!globalQaData) return null;
+            return globalQaData.find(r => r.agent && cleanAgentName(r.agent).toLowerCase() === cleanTargetAgent.toLowerCase());
+        }
+
+        function updatePerformanceDashboard() {
+            const csatCurrent = document.getElementById('csatCurrentWeekSelect').value;
+            const qaCurrent = document.getElementById('qaCurrentWeekSelect').value;
+            if (!csatCurrent || !qaCurrent) return;
+
+            const csatPast = getPreviousWeek(csatCurrent);
+            const qaPast = getPreviousWeek(qaCurrent);
+
+            document.getElementById('csatPastLabel').textContent = csatPast;
+            document.getElementById('qaPastLabel').textContent = qaPast;
+            document.getElementById('thCsatLalu').textContent = `CSAT (${csatPast})`;
+            document.getElementById('thCsatIni').textContent = `CSAT (${csatCurrent})`;
+            document.getElementById('thQaLalu').textContent = `QA (${qaPast})`;
+            document.getElementById('thQaIni').textContent = `QA (${qaCurrent})`;
+
+            renderOverviewMetrics(csatPast, csatCurrent, qaPast, qaCurrent);
+            renderPerformanceCharts(csatPast, csatCurrent, qaPast, qaCurrent);
+            renderPerformanceTable(csatPast, csatCurrent, qaPast, qaCurrent);
+            renderProductivityWeeklyTable(); 
+            renderTopPerformers(csatCurrent);
+        }
+
+        function renderOverviewMetrics(csatPast, csatCurrent, qaPast, qaCurrent) {
+            let totalCsatCurrGood = 0, totalCsatCurrRated = 0;
+            let totalCsatPastGood = 0, totalCsatPastRated = 0;
+            let sumCasesCurr = 0, sumCasesPast = 0;
+            let improvedCount = 0;
+
+            let sumQaCurr = 0, countQaCurr = 0;
+            let sumQaPast = 0, countQaPast = 0;
+
+            targetAgents.forEach(agent => {
+                let ccNum = calculateCsatForAgentAndWeek(agent, csatCurrent);
+                let cpNum = calculateCsatForAgentAndWeek(agent, csatPast);
+                let ccVal = getCustomCsatDisplayValue(agent, csatCurrent);
+                let cpVal = getCustomCsatDisplayValue(agent, csatPast);
+
+                ['chatMatrix', 'callMatrix', 'overallMatrix'].forEach(matrixKey => {
+                    let sourceMatrix = globalCsatData[matrixKey];
+                    if (sourceMatrix) {
+                        Object.keys(sourceMatrix).forEach(rawAgentKey => {
+                            if (cleanAgentName(rawAgentKey).toLowerCase() === agent.toLowerCase()) {
+                                let agentMatrix = sourceMatrix[rawAgentKey];
+                                if (agentMatrix) {
+                                    Object.keys(agentMatrix).forEach(dateOrKey => {
+                                        let dObj = agentMatrix[dateOrKey];
+                                        if (dObj) {
+                                            let good = Number(dObj.r3 !== undefined ? dObj.r3 : (dObj.good || 0));
+                                            let rated = Number(dObj.ratedTotal !== undefined ? dObj.ratedTotal : (dObj.total || 0));
+                                            
+                                            if (getISOWeekKey(dateOrKey) === csatCurrent || dateOrKey === csatCurrent) {
+                                                totalCsatCurrGood += good;
+                                                totalCsatCurrRated += rated;
+                                            }
+                                            if (getISOWeekKey(dateOrKey) === csatPast || dateOrKey === csatPast) {
+                                                totalCsatPastGood += good;
+                                                totalCsatPastRated += rated;
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+
+                let casesC = getTotalCasesForAgentAndWeek(agent, csatCurrent);
+                let casesP = getTotalCasesForAgentAndWeek(agent, csatPast);
+                sumCasesCurr += casesC;
+                sumCasesPast += casesP;
+
+                if (ccVal === null && cpVal === null && ccNum > cpNum) {
+                    improvedCount++;
+                }
+
+                let qaRow = findQARowForAgent(agent);
+                let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+                if (qaWeeks[qaCurrent] !== undefined && !isNaN(qaWeeks[qaCurrent])) {
+                    sumQaCurr += Number(qaWeeks[qaCurrent]); countQaCurr++;
+                }
+                if (qaPast !== '-' && qaWeeks[qaPast] !== undefined && !isNaN(qaWeeks[qaPast])) {
+                    sumQaPast += Number(qaWeeks[qaPast]); countQaPast++;
+                }
+            });
+
+            let avgCsatCurr = totalCsatCurrRated > 0 ? (totalCsatCurrGood / totalCsatCurrRated) * 100 : 0;
+            let avgCsatPast = totalCsatPastRated > 0 ? (totalCsatPastGood / totalCsatPastRated) * 100 : 0;
+            let csatDiff = avgCsatCurr - avgCsatPast;
+
+            let avgQaCurr = countQaCurr > 0 ? (sumQaCurr / countQaCurr) : 0;
+            let avgQaPast = countQaPast > 0 ? (sumQaPast / countQaPast) : 0;
+            let qaDiff = avgQaCurr - avgQaPast;
+
+            let casesDiffPct = sumCasesPast > 0 ? ((sumCasesCurr - sumCasesPast) / sumCasesPast) * 100 : 0;
+
+            document.getElementById('metricAvgCsat').textContent = avgCsatCurr.toFixed(1) + '%';
+            let csatBadge = document.getElementById('metricCsatBadge');
+            csatBadge.className = `metric-badge ${csatDiff >= 0 ? 'success' : 'danger'}`;
+            csatBadge.innerHTML = `${csatDiff >= 0 ? '↑ +' : '↓ '}${csatDiff.toFixed(1)}%`;
+
+            document.getElementById('metricAvgQa').textContent = avgQaCurr.toFixed(1);
+            let qaBadge = document.getElementById('metricQaBadge');
+            qaBadge.className = `metric-badge ${qaDiff >= 0 ? 'success' : 'danger'}`;
+            qaBadge.innerHTML = `${qaDiff >= 0 ? '↑ +' : '↓ '}${qaDiff.toFixed(1)}`;
+
+            document.getElementById('metricTotalCases').textContent = sumCasesCurr;
+            let casesBadge = document.getElementById('metricCasesBadge');
+            casesBadge.className = `metric-badge ${casesDiffPct >= 0 ? 'success' : 'danger'}`;
+            casesBadge.innerHTML = `${casesDiffPct >= 0 ? '↑ +' : '↓ '}${casesDiffPct.toFixed(1)}%`;
+
+            document.getElementById('metricAgentImproved').textContent = `${improvedCount} / ${targetAgents.length}`;
+        }
+
+        function renderPerformanceCharts(csatPast, csatCurrent, qaPast, qaCurrent) {
+            let csatP = [], csatC = [], qaP = [], qaC = [];
+            let csatTextLabelsPast = [];
+            let csatTextLabelsCurrent = [];
+            let qaTextLabelsPast = [];
+            let qaTextLabelsCurrent = [];
+
+            targetAgents.forEach(agent => {
+                let cpVal = getCustomCsatDisplayValue(agent, csatPast);
+                let ccVal = getCustomCsatDisplayValue(agent, csatCurrent);
+
+                csatTextLabelsPast.push(cpVal);
+                csatTextLabelsCurrent.push(ccVal);
+
+                csatP.push(cpVal !== null ? 0 : calculateCsatForAgentAndWeek(agent, csatPast));
+                csatC.push(ccVal !== null ? 0 : calculateCsatForAgentAndWeek(agent, csatCurrent));
+
+                let qpCustom = getCustomQaDisplayValue(agent, qaPast);
+                let qcCustom = getCustomQaDisplayValue(agent, qaCurrent);
+
+                qaTextLabelsPast.push(qpCustom);
+                qaTextLabelsCurrent.push(qcCustom);
+
+                let qaRow = findQARowForAgent(agent);
+                let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+                
+                qaP.push(qpCustom !== null ? 0 : (qaPast !== '-' ? (Number(qaWeeks[qaPast]) || 0) : 0));
+                qaC.push(qcCustom !== null ? 0 : (Number(qaWeeks[qaCurrent]) || 0));
+            });
+
+            const shortAgentLabels = targetAgents.map(a => getShortAgentName(a));
+
+            const getBaseChartOptions = () => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 35, bottom: 5 } },
+                scales: {
+                    x: {
+                        ticks: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 11, weight: '600' } },
+                        grid: { display: false }
+                    },
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100,
+                        ticks: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 11 } },
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }, boxWidth: 14 } },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleFont: { family: 'Plus Jakarta Sans', size: 13, weight: 'bold' },
+                        bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                        padding: 12,
+                        cornerRadius: 8,
+                        borderColor: 'rgba(56,189,248,0.3)',
+                        borderWidth: 1
+                    }
+                }
+            });
+
+            if (csatChartInstance) csatChartInstance.destroy();
+            csatChartInstance = new Chart(document.getElementById('csatComparisonChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: shortAgentLabels,
+                    datasets: [
+                        { label: `${csatPast}`, data: csatP, backgroundColor: 'rgba(148, 163, 184, 0.35)', borderRadius: 6, barPercentage: 0.8, categoryPercentage: 0.9 },
+                        { label: `${csatCurrent}`, data: csatC, backgroundColor: 'rgba(56, 189, 248, 0.9)', borderRadius: 6, barPercentage: 0.8, categoryPercentage: 0.9 }
+                    ]
+                },
+                options: {
+                    ...getBaseChartOptions(),
+                    animation: {
+                        onComplete: function() {
+                            const ctx = this.ctx;
+                            ctx.font = Chart.helpers.toFont({ size: 10, family: 'Plus Jakarta Sans', weight: 'bold' });
+                            ctx.fillStyle = '#f8fafc';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            const customLists = [csatTextLabelsPast, csatTextLabelsCurrent];
+
+                            this.data.datasets.forEach((ds, i) => {
+                                this.getDatasetMeta(i).data.forEach((bar, idx) => {
+                                    let customStr = customLists[i][idx];
+                                    let val = ds.data[idx];
+                                    if (customStr !== null) {
+                                        ctx.fillStyle = '#fbbf24';
+                                        ctx.fillText(customStr, bar.x, bar.y - 6);
+                                        ctx.fillStyle = '#f8fafc';
+                                    } else if (val > 0) {
+                                        ctx.fillText(val + '%', bar.x, val >= 95 ? bar.y + 16 : bar.y - 4);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                }
+            });
+
+            if (qaChartInstance) qaChartInstance.destroy();
+            qaChartInstance = new Chart(document.getElementById('qaComparisonChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: shortAgentLabels,
+                    datasets: [
+                        { label: `${qaPast}`, data: qaP, backgroundColor: 'rgba(148, 163, 184, 0.35)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 },
+                        { label: `${qaCurrent}`, data: qaC, backgroundColor: 'rgba(52, 211, 153, 0.9)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 }
+                    ]
+                },
+                options: {
+                    ...getBaseChartOptions(),
+                    animation: {
+                        onComplete: function() {
+                            const ctx = this.ctx;
+                            ctx.font = Chart.helpers.toFont({ size: 10, family: 'Plus Jakarta Sans', weight: 'bold' });
+                            ctx.fillStyle = '#f8fafc';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'bottom';
+                            const qaCustomLists = [qaTextLabelsPast, qaTextLabelsCurrent];
+
+                            this.data.datasets.forEach((ds, i) => {
+                                this.getDatasetMeta(i).data.forEach((bar, idx) => {
+                                    let customStr = qaCustomLists[i][idx];
+                                    let val = ds.data[idx];
+                                    if (customStr !== null) {
+                                        ctx.fillStyle = '#fbbf24';
+                                        ctx.fillText(customStr, bar.x, bar.y - 6);
+                                        ctx.fillStyle = '#f8fafc';
+                                    } else if (val > 0) {
+                                        ctx.fillText(val, bar.x, val >= 95 ? bar.y + 16 : bar.y - 4);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPerformanceTable(csatPast, csatCurrent, qaPast, qaCurrent) {
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+            
+            targetAgents.forEach(agent => {
+                let cpVal = getCustomCsatDisplayValue(agent, csatPast);
+                let ccVal = getCustomCsatDisplayValue(agent, csatCurrent);
+                let cpNum = calculateCsatForAgentAndWeek(agent, csatPast);
+                let ccNum = calculateCsatForAgentAndWeek(agent, csatCurrent);
+
+                let qaRow = findQARowForAgent(agent);
+                let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+                let qp = (qaPast !== '-' && qaWeeks[qaPast] !== undefined) ? qaWeeks[qaPast] : '-';
+                let qc = qaWeeks[qaCurrent] !== undefined ? qaWeeks[qaCurrent] : '-';
+
+                let displayCsatPast = cpVal !== null ? cpVal : (csatPast !== '-' && cpNum > 0 ? cpNum + '%' : '-');
+                let displayCsatCurrent = ccVal !== null ? ccVal : (ccNum > 0 ? ccNum + '%' : '-');
+
+                let csatTrend = '-';
+                if (cpVal === null && ccVal === null && cpNum > 0 && ccNum > 0) {
+                    let diff = ccNum - cpNum;
+                    let diffStr = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+                    csatTrend = diff > 0 ? `<span style="color:var(--success-green); font-weight:700;">&#9650; ${diffStr}</span>` : (diff < 0 ? `<span style="color:var(--danger-red); font-weight:700;">&#9660; ${diffStr}</span>` : `<span style="color:var(--text-muted);">&#9632; Stable</span>`);
+                }
+
+                let qaTrend = '-';
+                if (qp !== '-' && qc !== '-' && !isNaN(qp) && !isNaN(qc)) {
+                    let diffQa = Number(qc) - Number(qp);
+                    let diffQaStr = (diffQa >= 0 ? '+' : '') + diffQa.toFixed(1);
+                    qaTrend = diffQa > 0 ? `<span style="color:var(--success-green); font-weight:700;">&#9650; ${diffQaStr}</span>` : (diffQa < 0 ? `<span style="color:var(--danger-red); font-weight:700;">&#9660; ${diffQaStr}</span>` : `<span style="color:var(--text-muted);">&#9632; Stable</span>`);
+                }
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="sticky-left">${agent}</td>
+                    <td style="text-align:center; color: var(--text-muted);">${displayCsatPast}</td>
+                    <td style="text-align:center; font-weight:700; color:var(--accent-blue);">${displayCsatCurrent}</td>
+                    <td style="text-align:center;">${csatTrend}</td>
+                    <td style="text-align:center; color: var(--text-muted);">${qp}</td>
+                    <td style="text-align:center; font-weight:700; color:var(--success-green);">${qc}</td>
+                    <td style="text-align:center;">${qaTrend}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initScrubbingDashboard() {
+            populateScrubbingFilters();
+            renderDonutChart();
+            renderProductivityWeeklyTable();
+            filterScrubbingTable();
+        }
+
+        function populateScrubbingFilters() {
+            const weeks = [...new Set(globalScrubData.map(i => i.week))].filter(Boolean).sort();
+            const agents = [...new Set(globalScrubData.map(i => i.fullName))].filter(Boolean).sort();
+
+            const weekSel = document.getElementById('filter-week');
+            const agentSel = document.getElementById('filter-agent');
+            const donutWeekSel = document.getElementById('filter-donut-week');
+
+            weekSel.innerHTML = '<option value="">Semua Week</option>';
+            agentSel.innerHTML = '<option value="">Semua Full Name</option>';
+            donutWeekSel.innerHTML = '<option value="">Semua Week (All)</option>';
+
+            weeks.forEach(w => {
+                let opt1 = document.createElement('option'); opt1.value = w; opt1.textContent = w; weekSel.appendChild(opt1);
+                let opt3 = document.createElement('option'); opt3.value = w; opt3.textContent = w; donutWeekSel.appendChild(opt3);
+            });
+            agents.forEach(a => {
+                let opt2 = document.createElement('option'); opt2.value = a; opt2.textContent = a; agentSel.appendChild(opt2);
+            });
+        }
+
+        function renderDonutChart() {
+            let selectedWeek = document.getElementById('filter-donut-week').value;
+            let counts = { "Agent Area": 0, "Operations Area": 0, "Aplikasi & Sistem": 0, "Customer Area": 0 };
+            
+            globalScrubData.forEach(item => {
+                if (selectedWeek && item.week !== selectedWeek) return;
+
+                let area = (item.relatedArea || "").trim();
+                if (counts[area] !== undefined) counts[area]++;
+                else if (area.toLowerCase().includes("agent")) counts["Agent Area"]++;
+                else if (area.toLowerCase().includes("operation")) counts["Operations Area"]++;
+                else if (area.toLowerCase().includes("customer")) counts["Customer Area"]++;
+                else if (area.toLowerCase().includes("aplikasi") || area.toLowerCase().includes("sistem")) counts["Aplikasi & Sistem"]++;
+            });
+
+            const ctx = document.getElementById('scrubbingDonutChart').getContext('2d');
+            if (donutChartInstance) donutChartInstance.destroy();
+            
+            const donutLabelsPlugin = {
+                id: 'donutLabelsPlugin',
+                afterDatasetDraw(chart) {
+                    const { ctx } = chart;
+                    const activeElements = chart.getActiveElements();
+                    const activeIndex = activeElements.length > 0 ? activeElements[0].index : null;
+
+                    chart.data.datasets.forEach((dataset, datasetIndex) => {
+                        const meta = chart.getDatasetMeta(datasetIndex);
+                        meta.data.forEach((element, index) => {
+                            if (index === activeIndex) return;
+                            let value = dataset.data[index];
+                            if (value > 0) {
+                                const { x, y } = element.tooltipPosition();
+                                ctx.save();
+                                ctx.font = "bold 12px 'Plus Jakarta Sans', sans-serif";
+                                ctx.fillStyle = "#ffffff";
+                                ctx.textAlign = "center";
+                                ctx.textBaseline = "middle";
+                                ctx.shadowColor = "rgba(0, 0, 0, 0.7)";
+                                ctx.shadowBlur = 4;
+                                ctx.fillText(value, x, y);
+                                ctx.restore();
+                            }
+                        });
+                    });
+                }
+            };
+
+            donutChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ["Agent Area", "Operations Area", "Aplikasi & Sistem", "Customer Area"],
+                    datasets: [{
+                        data: [counts["Agent Area"], counts["Operations Area"], counts["Aplikasi & Sistem"], counts["Customer Area"]],
+                        backgroundColor: ['#38bdf8', '#fbbf24', '#c084fc', '#90EE90'],
+                        borderWidth: 0,
+                        hoverOffset: 16
+                    }]
+                },
+                plugins: [donutLabelsPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: 15 },
+                    plugins: {
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 11, weight: '500' }, padding: 16 } 
+                        }
+                    },
+                    cutout: '72%'
+                }
+            });
+        }
+
+        function renderProductivityWeeklyTable() {
+            const tbody = document.getElementById('productivityTableBody');
+            tbody.innerHTML = '';
+
+            const currentWeek = document.getElementById('csatCurrentWeekSelect').value || sortedWeeksList[sortedWeeksList.length - 1];
+            const pastWeek = getPreviousWeek(currentWeek);
+
+            document.getElementById('thProdLalu').textContent = `Minggu Lalu (${pastWeek})`;
+            document.getElementById('thProdIni').textContent = `Minggu Ini (${currentWeek})`;
+
+            targetAgents.forEach(agent => {
+                let casesPast = getTotalCasesForAgentAndWeek(agent, pastWeek);
+                let casesCurrent = getTotalCasesForAgentAndWeek(agent, currentWeek);
+
+                let pastCustom = getCustomCasesDisplayValue(agent, pastWeek);
+                let currentCustom = getCustomCasesDisplayValue(agent, currentWeek);
+
+                let displayPast = pastCustom !== null ? pastCustom : (pastWeek !== '-' ? casesPast + ' Cases' : '-');
+                let displayCurrent = currentCustom !== null ? currentCustom : (casesCurrent + ' Cases');
+
+                let trendHtml = '-';
+                if (pastWeek !== '-' && pastCustom === null && currentCustom === null) {
+                    let diffCases = casesCurrent - casesPast;
+                    let diffStr = (diffCases > 0 ? '+' : '') + diffCases;
+                    
+                    if (casesCurrent > casesPast) {
+                        trendHtml = `<span style="color:var(--success-green); font-weight:700;">&#9650; ${diffStr}</span>`;
+                    } else if (casesCurrent < casesPast) {
+                        trendHtml = `<span style="color:var(--danger-red); font-weight:700;">&#9660; ${diffStr}</span>`;
+                    } else {
+                        trendHtml = `<span style="color:var(--text-muted); font-weight:600;">&#9632; Stable (0)</span>`;
+                    }
+                }
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight:700;">${agent}</td>
+                    <td style="text-align:center; color: var(--text-muted);">${displayPast}</td>
+                    <td style="text-align:center; font-weight:700; color:var(--accent-blue);">${displayCurrent}</td>
+                    <td style="text-align:center;">${trendHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterScrubbingTable() {
+            const search = document.getElementById('search-input').value.toLowerCase();
+            const week = document.getElementById('filter-week').value;
+            const agent = document.getElementById('filter-agent').value;
+
+            const filtered = globalScrubData.map(item => {
+                let area = (item.relatedArea || "").trim().toLowerCase();
+                let isAgentArea = area === 'agent area' || area.includes('agent');
+                if (!isAgentArea) return null;
+
+                let matchSearch = (String(item.ms || '') + String(item.fullName || '') + String(item.remarks || '')).toLowerCase().includes(search);
+                let matchWeek = week === '' || item.week === week;
+                let matchAgent = agent === '' || item.fullName === agent;
+
+                return (matchSearch && matchWeek && matchAgent) ? item : null;
+            }).filter(Boolean);
+
+            renderScrubbingTable(filtered);
+            updateScrubbingStats(filtered);
+        }
+
+        function openChartModal(type) {
+            const overlay = document.getElementById('chartModalOverlay');
+            const titleEl = document.getElementById('modalChartTitle');
+            const ctx = document.getElementById('modalChartCanvas').getContext('2d');
+            
+            overlay.classList.add('active');
+
+            const csatCurrent = document.getElementById('csatCurrentWeekSelect').value;
+            const qaCurrent = document.getElementById('qaCurrentWeekSelect').value;
+            const csatPast = getPreviousWeek(csatCurrent);
+            const qaPast = getPreviousWeek(qaCurrent);
+
+            if (modalChartInstance) modalChartInstance.destroy();
+
+            if (type === 'csat') {
+                titleEl.textContent = `Diagram Perbandingan CSAT (%) - Full View`;
+                let csatP = [], csatC = [];
+                let csatTextLabelsPast = [], csatTextLabelsCurrent = [];
+
+                targetAgents.forEach(agent => {
+                    let cpVal = getCustomCsatDisplayValue(agent, csatPast);
+                    let ccVal = getCustomCsatDisplayValue(agent, csatCurrent);
+                    csatTextLabelsPast.push(cpVal);
+                    csatTextLabelsCurrent.push(ccVal);
+                    csatP.push(cpVal !== null ? 0 : calculateCsatForAgentAndWeek(agent, csatPast));
+                    csatC.push(ccVal !== null ? 0 : calculateCsatForAgentAndWeek(agent, csatCurrent));
+                });
+
+                modalChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: targetAgents,
+                        datasets: [
+                            { label: `Minggu Lalu (${csatPast})`, data: csatP, backgroundColor: 'rgba(148, 163, 184, 0.35)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 },
+                            { label: `Minggu Ini (${csatCurrent})`, data: csatC, backgroundColor: 'rgba(56, 189, 248, 0.9)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 }
+                        ]
+                    },
+                    options: getModalChartOptions()
+                });
+            } else if (type === 'qa') {
+                titleEl.textContent = `Diagram Perbandingan QA Score - Full View`;
+                let qaP = [], qaC = [];
+
+                targetAgents.forEach(agent => {
+                    let qpCustom = getCustomQaDisplayValue(agent, qaPast);
+                    let qcCustom = getCustomQaDisplayValue(agent, qaCurrent);
+                    let qaRow = findQARowForAgent(agent);
+                    let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+                    qaP.push(qpCustom !== null ? 0 : (qaPast !== '-' ? (Number(qaWeeks[qaPast]) || 0) : 0));
+                    qaC.push(qcCustom !== null ? 0 : (Number(qaWeeks[qaCurrent]) || 0));
+                });
+
+                modalChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: targetAgents,
+                        datasets: [
+                            { label: `Minggu Lalu (${qaPast})`, data: qaP, backgroundColor: 'rgba(148, 163, 184, 0.35)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 },
+                            { label: `Minggu Ini (${qaCurrent})`, data: qaC, backgroundColor: 'rgba(52, 211, 153, 0.9)', borderRadius: 6, barPercentage: 0.7, categoryPercentage: 0.8 }
+                        ]
+                    },
+                    options: getModalChartOptions()
+                });
+            }
+        }
+
+        function closeChartModal(event) {
+            if (event && event.target !== document.getElementById('chartModalOverlay') && !event.target.classList.contains('btn-close-modal')) return;
+            const overlay = document.getElementById('chartModalOverlay');
+            overlay.classList.remove('active');
+            if (modalChartInstance) {
+                modalChartInstance.destroy();
+                modalChartInstance = null;
+            }
+        }
+
+        function getModalChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: { padding: { top: 35, bottom: 20 } },
+                scales: {
+                    x: {
+                        ticks: { color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 12, weight: '600' }, maxRotation: 20, minRotation: 0 },
+                        grid: { display: false }
+                    },
+                    y: { 
+                        beginAtZero: true, 
+                        max: 100,
+                        ticks: { color: '#cbd5e1', font: { family: 'Plus Jakarta Sans', size: 12 } },
+                        grid: { color: 'rgba(255, 255, 255, 0.08)' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 13, weight: '600' }, boxWidth: 16 } }
+                }
+            };
+        }
+
+        function updateScrubbingStats(data) {
+            document.getElementById('total-records').textContent = data.length;
+            document.getElementById('total-agents').textContent = new Set(data.map(i => i.fullName)).size;
+            document.getElementById('total-weeks').textContent = new Set(data.map(i => i.week)).size;
+        }
+
+        function getCustomQaDisplayValue(agentName, weekStr) {
+            let qaRow = findQARowForAgent(agentName);
+            let qaWeeks = qaRow ? (qaRow.week_data || {}) : {};
+            let val = qaWeeks[weekStr];
+            if (val !== undefined && isNaN(val)) return String(val);
+            return null;
+        }
+
+        function renderScrubbingTable(data) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">Tidak ada data scrubbing agent area yang cocok.</td></tr>`;
+                return;
+            }
+
+            const sorted = [...data].sort((a, b) => {
+                let weekA = parseInt(String(a.week).replace(/[^0-9]/g, '')) || 0;
+                let weekB = parseInt(String(b.week).replace(/[^0-9]/g, '')) || 0;
+                if (weekB !== weekA) return weekB - weekA;
+                return String(a.fullName || '').localeCompare(String(b.fullName || ''));
+            });
+
+            let currentWeek = '';
+            sorted.forEach(item => {
+                if (item.week !== currentWeek) {
+                    currentWeek = item.week;
+                    const groupRow = document.createElement('tr');
+                    groupRow.className = 'group-header';
+                    groupRow.innerHTML = `<td colspan="5"><i class="fa-regular fa-calendar-days" style="margin-right: 8px;"></i> Periode: <span class="badge">${item.week}</span></td>`;
+                    tbody.appendChild(groupRow);
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><code style="background: rgba(56,189,248,0.1); padding: 2px 6px; border-radius: 4px; color: var(--accent-blue);">${item.ms || '-'}</code></td>
+                    <td style="font-weight: 600; text-align: left;">${item.fullName || '-'}</td>
+                    <td style="color: var(--text-muted);">${item.createdDate || '-'}</td>
+                    <td><span class="badge">${item.week || '-'}</span></td>
+                    <td style="text-align: left;">${item.remarks || '-'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
