@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Master Jadwal Shift & Rekap Kehadiran (Kolom A - AS)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+            --primary: #2563eb;
+            --success-green: #10b981;
+            --danger-red: #ef4444;
+            --warning-yellow: #f59e0b;
+        }
+
+        body { 
+            background-color: #CAE9BE; 
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.05) 0%, transparent 40%);
+            color: var(--text-main); 
+            min-height: 100vh; 
+            padding: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: relative;
+            overflow-x: hidden;
+            margin: 0;
+        }
+.footer {
+	text-align: right;
+	margin-right: 16px;
+	margin-bottom: -10px;
+            font-size: 10px;
+            color: #ffffff;
+        }
+
+        .main-content {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Styling Nav Tabs ala NDSAT Summary */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .nav-tab {
+            position: relative;
+            padding: 10px 20px; 
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+        }
+
+        .nav-tab:hover {
+            color: #38bdf8; 
+            background: rgba(56, 189, 248, 0.08); 
+            transform: translateY(-1px);
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8; 
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .container {
+            max-width: 1350px;
+            width: 100%;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #0f172a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 30px;
+            position: relative;
+            max-width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        .pct-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .pct-green  { background-color: #d1fae5 !important; color: #065f46; } 
+        .pct-yellow { background-color: #fef3c7 !important; color: #92400e; } 
+        .pct-red    { background-color: #fee2e2 !important; color: #991b1b; } 
+        .status-excellent { background-color: #d1fae5 !important; color: #065f46; } 
+        .status-good	{ background-color: #fef3c7 !important; color: #92400e; } 
+        .status-monitor { background-color: #fee2e2 !important; color: #991b1b; } 
+
+        th, td {
+            padding: 8px 10px;
+            border: 1px solid var(--border-color);
+            background-color: #ffffff;
+        }
+
+        th {
+            background: #e2e8f0;
+            font-weight: 600;
+            color: #334155;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th.sticky-name, td.sticky-name {
+            position: sticky;
+            left: 0;
+            z-index: 5;
+            background-color: #ffffff;
+            border-right: 2px solid var(--border-color);
+        }
+
+        th.sticky-name {
+            background-color: #e2e8f0;
+            z-index: 15;
+        }
+
+        .text-center { text-align: center; }
+        
+        .status-hadir { background-color: #d1fae5 !important; color: #065f46; font-weight: 600; text-align: center; }
+        .status-libur { background-color: #f1f5f9 !important; color: #64748b; text-align: center; }
+        .status-sakit { background-color: #fef3c7 !important; color: #92400e; font-weight: 600; text-align: center; }
+        .status-izin  { background-color: #e0f2fe !important; color: #0369a1; font-weight: 600; text-align: center; }
+        .status-alpha { background-color: #fee2e2 !important; color: #991b1b; font-weight: 600; text-align: center; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 0.95rem;
+            color: #64748b;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid var(--border-color);
+            margin: 24px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+   <header class="bg-[#0f172a]/75 border border-white/[0.08] backdrop-blur-md text-white shadow-lg w-full">
+        <div class="w-full px-6 py-4 flex justify-between items-center flex-wrap gap-4">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-calendar-check"></i> Rekap Kehadiran
+            </h1>
+            <div class="nav-tabs">
+                <button class="nav-tab" onclick="window.location.href='https://dailycsat-pptteam.netlify.app/?agents=Amy%2520Andriyani%2520%28Frontline%2520Chat%29%2CReni%2520Prastiana%2520Sari%2520%28Frontline%2520Sosmed%29%2CAlif%2520Indra%2520Arditya%2520%28Frontline%2520Call%29%2CLista%2520Nadya%2520Imaniar%2520%28Frontline%2520Chat%29%2CMeilinda%2520Mahmudah%2520%28Frontline%2520Chat%29%2CMaria%2520Yustika%2520Pia%2520%28Frontline%2520Sosmed%29%2CYuliana%2520%28Frontline%2520Call%29%2CDoni%2520Mubarok%2520Ramdani%2520%28Frontline%2520Chat%29%2CPriska%2520Novenda%2520Nucifera%2520%28Frontline%2520Call%29%2CRomadhona%2520Herlin%2520Cahya%2520Kusuma%2520%28Frontline%2520Chat%29&month=ALL&week=ALL'"><i class="fa-solid fa-chart-line"></i> Dashboard CSAT</button>
+                <button class="nav-tab" onclick="window.location.href='https://calculator-pptteam.netlify.app'"><i class="fa-solid fa-square-root-variable"></i> CSAT Calculator</button>
+                <button class="nav-tab" onclick="window.location.href='https://qa-pptteam.netlify.app'"><i class="fa-solid fa-gauge-high"></i> Dashboard QA</button>
+                <button class="nav-tab" onclick="window.location.href='https://performance-pptteam.netlify.app'"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard Performance</button>
+                <button class="nav-tab" onclick="window.location.href='https://nc-pptteam.netlify.app'"><i class="fa-solid fa-chart-pie"></i> Summary NDSAT Tim QA</button>
+                <button class="nav-tab active"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+            <div id="breadcrumb" class="text-sm text-indigo-200">
+                <span>Home</span> / <span class="font-semibold text-white">Rekap Kehadiran</span>
+            </div>
+        </div>
+    </header>
+    <div class="container">
+        <div class="section-title">
+            <span id="mainTitle">📊 Live Master Jadwal Shift Tim (Memuat Bulan...)</span>
+        </div>
+
+        <div class="table-responsive">
+            <div id="loading" class="loading">Memuat data langsung dari Spreadsheet...</div>
+            <table id="liveTable" style="display: none;">
+                <thead>
+                    <tr id="tableHeader"></tr>
+                </thead>
+                <tbody id="scheduleTableBody"></tbody>
+            </table>
+        </div>
+
+        <hr>
+
+        <div class="section-title">
+            <span id="summaryTitle">📈 Rekapitulasi Persentase Kehadiran Monthly per Agent</span>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: left;" class="sticky-name">Nama Agent</th>
+                        <th class="text-center">Total Hari Kerja (Aktif)</th>
+                        <th class="text-center">Total Masuk (Hadir)</th>
+                        <th class="text-center">Persentase Kehadiran (Monthly)</th>
+                        <th class="text-center">Status Kehadiran</th>
+                    </tr>
+                </thead>
+                <tbody id="monthlySummaryTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+	<div class="footer"><div>Created with ❤️ by <strong>Ikhsan</strong></div></div>
+
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzoJm_cqDzR8vggqHqqXGooiy059qnetmJJE9t9yvYgc5jmcKt8G8kRlBhutR8y3hY/exec';
+
+        let globalScheduleRows = [];
+        let validColumnIndices = []; 
+
+        async function loadSpreadsheetData() {
+            try {
+                const response = await fetch(WEB_APP_URL);
+                const data = await response.json();
+                
+                const rawHeaders = data.headers;
+                globalScheduleRows = data.rows || [];
+
+                validColumnIndices = [];
+                rawHeaders.forEach((header, index) => {
+                    if (index < 4 || (header !== null && String(header).trim() !== '')) {
+                        validColumnIndices.push(index);
+                    }
+                });
+
+                let detectedMonthName = "";
+                if (validColumnIndices.length > 4 && globalScheduleRows.length > 0) {
+                    let firstDateVal = globalScheduleRows[0][validColumnIndices[4]];
+                    if (firstDateVal) {
+                        let d = new Date(firstDateVal);
+                        if (!isNaN(d)) {
+                            detectedMonthName = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+                        }
+                    }
+                }
+
+                if (detectedMonthName) {
+                    document.getElementById('mainTitle').innerHTML = `📊 Live Master Jadwal Shift Tim Periode ${detectedMonthName}`;
+                    document.getElementById('summaryTitle').innerHTML = `📈 Rekapitulasi Persentase Kehadiran Monthly (${detectedMonthName})`;
+                }
+
+                const headerTr = document.getElementById('tableHeader');
+                const scheduleTbody = document.getElementById('scheduleTableBody');
+                
+                headerTr.innerHTML = '';
+                scheduleTbody.innerHTML = '';
+
+                // 1. Render Header Tabel Utama
+                validColumnIndices.forEach((colIndex, i) => {
+                    let th = document.createElement('th');
+                    let dayName = rawHeaders[colIndex] || '';
+                    let dateVal = (globalScheduleRows.length > 0) ? globalScheduleRows[0][colIndex] : '';
+                    
+                    let formattedDate = '';
+                    if (dateVal !== undefined && dateVal !== null) {
+                        let dateStr = String(dateVal);
+                        if (dateStr.includes('T') && (dateStr.includes('Z') || dateStr.includes('+'))) {
+                            let dateObj = new Date(dateStr);
+                            if (!isNaN(dateObj)) {
+                                formattedDate = dateObj.toLocaleDateString('en-GB', { 
+                                    day: 'numeric', 
+                                    month: 'short' 
+                                });
+                            }
+                        } else if (dateStr.trim() !== '') {
+                            formattedDate = dateStr;
+                        }
+                    }
+
+                    if (i >= 3 && formattedDate) {
+                        th.innerHTML = `${dayName}<br><span style="font-weight: normal; font-size: 0.75rem;">${formattedDate}</span>`;
+                    } else {
+                        th.textContent = dayName;
+                    }
+
+                    if (i === 0) th.classList.add('sticky-name');
+                    headerTr.appendChild(th);
+                });
+
+                // 2. Ambil data agent mulai baris ke-2, dan FILTER BARIS SAMPAH / PILIH BULAN / BARIS KOSONG
+                let agentDataRows = globalScheduleRows.slice(1).filter(row => {
+                    let nameVal = row[0] ? String(row[0]).trim().toLowerCase() : '';
+                    // Abaikan jika baris kosong, mengandung teks "pilih bulan", atau teks header/metadata lainnya
+                    if (!nameVal || nameVal === '' || nameVal.includes('pilih bulan') || nameVal.includes('nama')) {
+                        return false;
+                    }
+                    return true;
+                });
+
+                // 3. Render Baris Data Agent yang valid
+                agentDataRows.forEach((row) => {
+                    let tr = document.createElement('tr');
+                    let rowHTML = '';
+
+                    validColumnIndices.forEach((colIndex, i) => {
+                        let cellValue = row[colIndex];
+                        let valStr = String(cellValue !== undefined && cellValue !== null ? cellValue : '').trim();
+                        
+                        if (i === 0) {
+                            rowHTML += `<td class="sticky-name" style="font-weight: 600;">${valStr || '-'}</td>`;
+                        } else if (i >= 1 && i <= 3) {
+                            rowHTML += `<td>${valStr}</td>`;
+                        } else {
+                            let valLower = valStr.toLowerCase();
+                            let statusClass = '';
+                            if (valLower.includes('hadir')) statusClass = 'status-hadir';
+                            else if (valLower.includes('libur')) statusClass = 'status-libur';
+                            else if (valLower.includes('sakit')) statusClass = 'status-sakit';
+                            else if (valLower.includes('izin')) statusClass = 'status-izin';
+                            else if (valLower.includes('alpha')) statusClass = 'status-alpha';
+
+                            rowHTML += `<td class="${statusClass}">${valStr || '-'}</td>`;
+                        }
+                    });
+
+                    tr.innerHTML = rowHTML;
+                    scheduleTbody.appendChild(tr);
+                });
+
+                // 4. Render Tabel Rekapitulasi di Bawah
+                renderSummaryTable(agentDataRows);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('liveTable').style.display = 'table';
+
+            } catch (error) {
+                document.getElementById('loading').innerHTML = 'Gagal memuat data spreadsheet. Pastikan URL Web App benar dan sudah di-deploy dengan akses "Anyone".';
+                console.error(error);
+            }
+        }
+
+        function renderSummaryTable(agentDataRows) {
+            const summaryTbody = document.getElementById('monthlySummaryTableBody');
+            summaryTbody.innerHTML = '';
+
+            if (!agentDataRows || agentDataRows.length === 0) return;
+
+            let mainTitleText = document.getElementById('mainTitle').innerText.toLowerCase();
+            
+            let targetMonthIndex = -1; 
+            let targetYear = new Date().getFullYear();
+            
+            const monthsList = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+            
+            for (let i = 0; i < monthsList.length; i++) {
+                if (mainTitleText.includes(monthsList[i])) {
+                    targetMonthIndex = i;
+                    break;
+                }
+            }
+
+            let yearMatch = mainTitleText.match(/\b20\d{2}\b/);
+            if (yearMatch) {
+                targetYear = parseInt(yearMatch[0]);
+            }
+
+            let totalDaysInMonth = 31;
+            if (targetMonthIndex !== -1) {
+                totalDaysInMonth = new Date(targetYear, targetMonthIndex + 1, 0).getDate();
+            }
+
+            agentDataRows.forEach((row) => {
+                let agentName = row[0]; 
+                if (!agentName || String(agentName).trim() === '') return;
+
+                let totalWorkingDays = 0;
+                let totalPresent = 0;
+
+                for (let i = 4; i < 4 + totalDaysInMonth; i++) {
+                    if (i >= validColumnIndices.length) break;
+
+                    let originalColIndex = validColumnIndices[i];
+                    let status = String(row[originalColIndex] || '').trim().toLowerCase();
+                    
+                    if (status && status !== 'libur' && status !== '-') {
+                        totalWorkingDays++;
+                        
+                        let isSakit = status.includes('sakit');
+                        let isIzin = status.includes('izin');
+                        let isAlpha = status.includes('alpha');
+                        
+                        if (!isSakit && !isIzin && !isAlpha) {
+                            totalPresent++; 
+                        }
+                    }
+                }
+
+                if (totalPresent > totalWorkingDays) {
+                    totalPresent = totalWorkingDays;
+                }
+
+                let percentage = totalWorkingDays > 0 ? Number(((totalPresent / totalWorkingDays) * 100).toFixed(1)) : 100;
+
+                let badgeClass = 'pct-green';
+                let statusBadgeClass = 'status-excellent';
+                let statusLabel = 'Excellent';
+                
+                if (percentage === 100) {
+                    badgeClass = 'pct-green';
+                    statusBadgeClass = 'status-excellent';
+                    statusLabel = 'Excellent';
+                } else if (percentage >= 92 && percentage < 100) {
+                    badgeClass = 'pct-yellow';
+                    statusBadgeClass = 'status-good';
+                    statusLabel = 'Good';
+                } else {
+                    badgeClass = 'pct-red';
+                    statusBadgeClass = 'status-monitor';
+                    statusLabel = 'Need to monitor';
+                }
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="sticky-name" style="font-weight: 600;">${agentName}</td>
+                    <td class="text-center">${totalWorkingDays} Hari</td>
+                    <td class="text-center">${totalPresent} Hari</td>
+                    <td class="text-center">
+                        <span class="pct-badge ${badgeClass}">${percentage}%</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="status-badge ${statusBadgeClass}">${statusLabel}</span>
+                    </td>
+                `;
+                summaryTbody.appendChild(tr);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSpreadsheetData);
+    </script>
+</body>
+</html>

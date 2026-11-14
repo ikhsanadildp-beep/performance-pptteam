@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSAT Calculator Engine</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Theme Base Dark */
+            --bg-color: #080c14;
+            --topbar-bg: rgba(15, 23, 42, 0.75);
+            --card-bg: rgba(15, 23, 42, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(30, 41, 59, 0.5);
+            
+            /* Dynamic Palette Defaults */
+            --accent-color: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --accent-border: rgba(56, 189, 248, 0.3);
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Strict 100vh Layout - Absolutely No Scroll */
+        html, body {
+            width: 100%;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            background-color: #d1efc6;
+            color: var(--text-main);
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Ambient Glow Blobs Background */
+        .blob {
+            position: absolute !important;
+            border-radius: 50% !important;
+            filter: blur(140px) !important;
+            opacity: 0.22;
+            pointer-events: none;
+            z-index: 0;
+            will-change: transform;
+        }
+
+        .blob-1 { 
+            top: -150px; left: -150px; width: 700px; height: 700px; 
+            background: #38bdf8; 
+            animation: floatBlob1 18s ease-in-out infinite alternate;
+        }
+
+        .blob-2 { 
+            bottom: -150px; right: -150px; width: 700px; height: 700px; 
+            background: #8b5cf6; 
+            animation: floatBlob2 22s ease-in-out infinite alternate;
+        }
+
+        @keyframes floatBlob1 {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(100px, 70px) scale(1.1); }
+            100% { transform: translate(-30px, 90px) scale(0.95); }
+        }
+
+        @keyframes floatBlob2 {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-90px, -70px) scale(1.15); }
+            100% { transform: translate(40px, -100px) scale(0.9); }
+        }
+
+        /* Top Header Navbar */
+        .top-navbar-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            background: var(--topbar-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .top-navbar {
+            width: 100%;
+            max-width: 1140px; /* Lebar sejajar dengan container */
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -0.3px;
+        }
+
+        .brand-icon {
+            font-size: 18px;
+        }
+
+        /* Navigation Switcher Pills */
+        .nav-pills {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--card-border);
+            padding: 4px;
+            border-radius: 12px;
+            gap: 4px;
+        }
+
+        .nav-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 18px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-decoration: none;
+            user-select: none;
+        }
+
+        .nav-pill:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-pill.active {
+            background: #1e293b;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-border);
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Main Page Layout Wrapper - Dynamic Centered */
+        .main-wrapper {
+            position: relative;
+            z-index: 2;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 32px;
+            overflow: hidden;
+        }
+
+        .tab-view {
+            width: 100%;
+            max-width: 1140px; /* Ditingkatkan dari 840px agar gagah dan proporsional */
+        }
+
+        /* Container Main Card */
+        .container {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--accent-border);
+            width: 100%;
+            padding: 28px 36px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 40px var(--accent-glow);
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        /* Sub-Header inside Card */
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent-glow);
+            border: 1px solid var(--accent-border);
+            color: var(--accent-color);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            transition: all 0.4s ease;
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-color);
+            animation: pulse 1.8s infinite;
+            transition: background 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+
+        h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+
+        .section-label {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+        }
+
+        /* Input Cards */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .input-card {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 8px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .input-card:hover {
+            border-color: var(--accent-border);
+        }
+
+        .input-card label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .input-card input {
+            width: 100%;
+            border: 1px solid transparent;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 8px 6px;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            color: var(--text-main);
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .input-card input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent-color);
+        }
+
+        .pct-breakdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        /* Target Card */
+        .target-card {
+            background: var(--input-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .target-card label { font-size: 13.5px; font-weight: 700; }
+        .target-card input {
+            width: 85px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 17px;
+            font-weight: 800;
+            text-align: center;
+            color: var(--accent-color);
+            outline: none;
+            transition: color 0.4s ease;
+        }
+
+        /* Right Panel: CSAT Display */
+        .result-panel {
+            background: rgba(10, 15, 30, 0.45);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Circular Chart */
+        .circular-chart-wrapper {
+            position: relative;
+            width: 155px;
+            height: 155px;
+            margin: 2px auto 6px auto;
+        }
+
+        .circular-chart {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-width: 3.2;
+        }
+
+        .circle-progress {
+            fill: none;
+            stroke-width: 3.2;
+            stroke-linecap: round;
+            stroke-dasharray: 0, 100;
+            transition: stroke-dasharray 0.8s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s ease;
+        }
+
+        .circle-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 80%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .result-value {
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1;
+            transition: color 0.4s ease;
+        }
+
+        .result-status-badge {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-top: 5px;
+            line-height: 1.1;
+            white-space: normal;
+            word-break: break-word;
+            transition: color 0.4s ease;
+        }
+
+        /* Insight Card Container */
+        .insight-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            margin-top: 4px;
+        }
+
+        .insight-header {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* 4-Column Metrics: CSAT, Target, Gap, Achievement */
+        .insight-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 6px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .metric-item .val { font-size: 13.5px; font-weight: 800; }
+        .metric-item .lbl { font-size: 8.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-top: 2px; }
+
+        .insight-action-box {
+            padding-top: 8px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            font-size: 11.5px;
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+
+        .highlight-val {
+            font-weight: 800;
+            padding: 1px 5px;
+            border-radius: 4px;
+            display: inline-block;
+            background: var(--accent-glow);
+            color: var(--accent-color);
+            border: 1px solid var(--accent-border);
+        }
+
+        /* Mini Stats Bottom */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            padding: 8px 6px;
+            text-align: center;
+        }
+
+        .stat-card .val { font-size: 15px; font-weight: 800; }
+        .stat-card .lbl { font-size: 9.5px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
+        /* Footer Enterprise Styling */
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding-top: 12px;
+            border-top: 1px solid var(--card-border);
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .footer-brand {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+	.footer-brand strong {
+            color: #B22222;
+            font-weight: 1000;
+        }
+.nav-tab {
+            padding: 6px 16px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        /* Efek Hover yang Lebih Hidup & Glowing */
+        .nav-tab:hover {
+            color: #38bdf8; /* Teks berubah jadi biru terang */
+            background: rgba(56, 189, 248, 0.12); /* Background ada pendaran warna biru tipis */
+            border-color: rgba(56, 189, 248, 0.3); /* Border ada garis warna biru */
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15); /* Efek glow */
+        }
+
+        /* Efek Saat Diklik / State Aktif */
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8; /* accent-blue */
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        /* Mengatur background baris AVG pada kolom sticky */
+        tr.bg-gray-100 td.sticky-col,
+        tr.font-bold td.sticky-col {
+            background-color: #f3f4f6 !important;
+        }
+:root {
+            --bg-color: #030712; /* Dipergelap sedikit agar kontras maksimal */
+            --card-bg: rgba(15, 23, 42, 0.75); /* Disesuaikan agar lebih clean */
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-border-hover: rgba(56, 189, 248, 0.5);
+            --accent-blue: #38bdf8;
+            --accent-purple: #c084fc;
+            --success-green: #34d399;
+            --warning-amber: #fbbf24;
+            --danger-red: #f43f5e;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8; /* Dinaikkan kontrasnya agar lebih tajam dibaca */
+        }
+.nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+.navbar {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-left: -28px;
+            margin-right: -28px;
+            width: calc(100% + 56px);
+            margin-top: -28px;
+            margin-bottom: 24px;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            min-height: 60px;
+        }
+
+
+
+        .brand {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+ <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-calculator"></i> CSAT Calculator 
+            </div>
+            <div class="nav-pills">
+                <button class="nav-tab" onclick="window.location.href='https://dailycsat-pptteam.netlify.app/?agents=Amy%2520Andriyani%2520%28Frontline%2520Chat%29%2CReni%2520Prastiana%2520Sari%2520%28Frontline%2520Sosmed%29%2CAlif%2520Indra%2520Arditya%2520%28Frontline%2520Call%29%2CLista%2520Nadya%2520Imaniar%2520%28Frontline%2520Chat%29%2CMeilinda%2520Mahmudah%2520%28Frontline%2520Chat%29%2CMaria%2520Yustika%2520Pia%2520%28Frontline%2520Sosmed%29%2CYuliana%2520%28Frontline%2520Call%29%2CDoni%2520Mubarok%2520Ramdani%2520%28Frontline%2520Chat%29%2CPriska%2520Novenda%2520Nucifera%2520%28Frontline%2520Call%29%2CRomadhona%2520Herlin%2520Cahya%2520Kusuma%2520%28Frontline%2520Chat%29&month=ALL&week=ALL'"><i class="fa-solid fa-chart-line"></i> Dashboard CSAT</button>
+                <button class="nav-tab active"><i class="fa-solid fa-square-root-variable"></i> CSAT Calculator</button>
+                <button class="nav-tab" onclick="window.location.href='https://qa-pptteam.netlify.app'"><i class="fa-solid fa-gauge-high"></i> Dashboard QA</button>
+                <button class="nav-tab" onclick="window.location.href='https://performance-pptteam.netlify.app'"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard Performance</button>
+<button class="nav-tab" onclick="window.location.href='https://nc-pptteam.netlify.app'"><i class="fa-solid fa-chart-pie"></i> Summary NDSAT Tim QA</button>
+		<button class="nav-tab" onclick="window.location.href='https://presensi-pptteam.netlify.app'"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+        </div>
+    </nav>
+    
+        </header>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+
+        <!-- Calculator Main Tool View -->
+        <div class="tab-view">
+            <div class="container" id="mainContainer">
+                <!-- Card Inner Header -->
+                <div class="card-header">
+                    <div>
+                        <h2>CSAT Calculator</h2>
+                        <p class="subtitle">Kalkulasi real-time & proyeksi gap target kepuasan</p>
+                    </div>
+                    <div class="live-badge" id="liveBadge">
+                        <span class="pulse-dot" id="pulseDot"></span> CSAT ENGINE
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Left Panel: Input -->
+                    <div class="input-panel">
+                        <div class="section-label">📥 Data Responden</div>
+                        <div class="input-grid">
+                            <div class="input-card">
+                                <label>🟢 Rating 3</label>
+                                <input type="number" id="rating3" min="0" placeholder="0" oninput="hitungCSAT()">
+                            </div>
+                            <div class="input-card">
+                                <label>🟡 Rating 2</label>
+                                <input type="number" id="rating2" min="0" placeholder="0" oninput="hitungCSAT()">
+                            </div>
+                            <div class="input-card">
+                                <label>🔴 Rating 1</label>
+                                <input type="number" id="rating1" min="0" placeholder="0" oninput="hitungCSAT()">
+                            </div>
+                        </div>
+
+                        <div class="pct-breakdown">
+                            <span id="pct3">0%</span>
+                            <span id="pct2">0%</span>
+                            <span id="pct1">0%</span>
+                        </div>
+
+                        <div class="section-label">🎯 Parameter Target</div>
+                        <div class="target-card">
+                            <label>Target CSAT (%)</label>
+                            <input type="number" id="targetCsat" min="0" max="100" step="0.1" placeholder="0" oninput="hitungCSAT()">
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="val" id="statTotal">0</div>
+                                <div class="lbl">📊 Total Survey</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="val" id="statSatisfied" style="color: #34d399;">0</div>
+                                <div class="lbl">😊 Puas (R3)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="val" id="statUnsatisfied" style="color: #fb7185;">0</div>
+                                <div class="lbl">☹️ Belum Puas</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Evaluation vs Target -->
+                    <div class="result-panel">
+                        <div class="section-label" style="text-align: center;">📈 Evaluasi Kinerja (VS TARGET)</div>
+
+                        <!-- Circular Progress -->
+                        <div class="circular-chart-wrapper">
+                            <svg viewBox="0 0 36 36" class="circular-chart">
+                                <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path id="circleProgress" class="circle-progress" stroke="#38bdf8" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div class="circle-text">
+                                <div class="result-value" id="csatResult">0%</div>
+                                <div class="result-status-badge" id="statusBadge">NO DATA</div>
+                            </div>
+                        </div>
+
+                        <!-- Insight Card -->
+                        <div id="insightCard" class="insight-card">
+                            <div class="insight-header">
+                                <span id="insightTitle">💡 Analisis Target</span>
+                                <span id="insightTag" style="font-size: 9.5px; font-weight: 800; color: var(--text-muted);">STANDBY</span>
+                            </div>
+                            
+                            <!-- 4 Metrics: CSAT, Target, Gap, Achievement -->
+                            <div class="insight-metrics">
+                                <div class="metric-item">
+                                    <div class="val" id="mCSAT">0%</div>
+                                    <div class="lbl">CSAT</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="val" id="mTarget">-%</div>
+                                    <div class="lbl">Target</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="val" id="mGap">0%</div>
+                                    <div class="lbl">Gap</div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="val" id="mAch">0%</div>
+                                    <div class="lbl">Achv.</div>
+                                </div>
+                            </div>
+
+
+
+                            <div class="insight-action-box" id="insightDesc">
+                                Isi data rating dan target di panel kiri untuk kalkulasi real-time.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    <div>Created with ❤️ by <strong>Ikhsan</strong></div>
+                    <div>Target-Driven CSAT Analytics</div>
+                    <div class="footer-brand">Powered by <strong>Lion Parcel </strong></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let animationFrame;
+        let currentDisplayScore = 0;
+
+        function animateNumber(targetValue) {
+            cancelAnimationFrame(animationFrame);
+            const duration = 400;
+            const startScore = currentDisplayScore;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeProgress = 1 - (1 - progress) * (1 - progress);
+                
+                currentDisplayScore = startScore + (targetValue - startScore) * easeProgress;
+                document.getElementById('csatResult').innerText = currentDisplayScore.toFixed(1) + '%';
+
+                if (progress < 1) {
+                    animationFrame = requestAnimationFrame(update);
+                } else {
+                    currentDisplayScore = targetValue;
+                    document.getElementById('csatResult').innerText = targetValue.toFixed(1) + '%';
+                }
+            }
+            animationFrame = requestAnimationFrame(update);
+        }
+
+        function applyDynamicTheme(colorHex, bgGlow, borderGlow) {
+            document.documentElement.style.setProperty('--accent-color', colorHex);
+            document.documentElement.style.setProperty('--accent-glow', bgGlow);
+            document.documentElement.style.setProperty('--accent-border', borderGlow);
+            
+            document.getElementById('circleProgress').setAttribute('stroke', colorHex);
+            document.getElementById('csatResult').style.color = colorHex;
+            document.getElementById('statusBadge').style.color = colorHex;
+        }
+
+        function hitungCSAT() {
+            const r3 = parseInt(document.getElementById('rating3').value) || 0;
+            const r2 = parseInt(document.getElementById('rating2').value) || 0;
+            const r1 = parseInt(document.getElementById('rating1').value) || 0;
+            const target = parseFloat(document.getElementById('targetCsat').value);
+
+            const totalResponden = r1 + r2 + r3;
+            const unsatisfied = r1 + r2;
+
+            document.getElementById('statTotal').innerText = totalResponden;
+            document.getElementById('statSatisfied').innerText = r3;
+            document.getElementById('statUnsatisfied').innerText = unsatisfied;
+
+            if (totalResponden > 0) {
+                document.getElementById('pct3').innerText = ((r3 / totalResponden) * 100).toFixed(0) + '%';
+                document.getElementById('pct2').innerText = ((r2 / totalResponden) * 100).toFixed(0) + '%';
+                document.getElementById('pct1').innerText = ((r1 / totalResponden) * 100).toFixed(0) + '%';
+            } else {
+                document.getElementById('pct3').innerText = '0%';
+                document.getElementById('pct2').innerText = '0%';
+                document.getElementById('pct1').innerText = '0%';
+            }
+
+            const circleProgress = document.getElementById('circleProgress');
+            const statusBadge = document.getElementById('statusBadge');
+
+            if (totalResponden === 0) {
+                animateNumber(0);
+                circleProgress.style.strokeDasharray = '0, 100';
+                applyDynamicTheme('#38bdf8', 'rgba(56, 189, 248, 0.15)', 'rgba(56, 189, 248, 0.3)');
+                statusBadge.innerText = "NO DATA";
+                
+                updateInsight("💡 Analisis Target", "STANDBY", "0%", isNaN(target) ? '-%' : target + '%', "0%", "0%", "Isi data rating dan target di panel kiri untuk kalkulasi real-time.");
+                return;
+            }
+
+            const csatScore = (r3 / totalResponden) * 100;
+            animateNumber(csatScore);
+            circleProgress.style.strokeDasharray = `${Math.min(csatScore, 100)}, 100`;
+
+            if (isNaN(target)) {
+                applyDynamicTheme('#38bdf8', 'rgba(56, 189, 248, 0.15)', 'rgba(56, 189, 248, 0.3)');
+                statusBadge.innerText = "SET TARGET";
+                updateInsight("💡 Target Belum Diisi", "INFO", csatScore.toFixed(1) + "%", "-%", "-", "-", "Isi parameter target CSAT di panel sebelah kiri.");
+                return;
+            }
+
+            const gap = csatScore - target;
+            const achievement = (csatScore / target) * 100;
+            const targetDecimal = target / 100;
+
+            if (targetDecimal >= 1) {
+                applyDynamicTheme('#f43f5e', 'rgba(244, 63, 94, 0.15)', 'rgba(244, 63, 94, 0.3)');
+                statusBadge.innerText = "INVALID TARGET";
+                updateInsight("⚠️ Target Tidak Valid", "WARNING", csatScore.toFixed(1) + "%", target + "%", "-", "-", "Target 100% tidak mungkin dicapai jika sudah ada rating 1 atau 2.");
+                return;
+            }
+
+            const tambahanR3 = Math.ceil((targetDecimal * totalResponden - r3) / (1 - targetDecimal));
+            const gapFormatted = gap >= 0 ? `▲ +${gap.toFixed(1)}%` : `▼ ${gap.toFixed(1)}%`;
+            const achFormatted = achievement.toFixed(1) + "%";
+
+            if (gap >= 5) {
+                applyDynamicTheme('#34d399', 'rgba(52, 211, 153, 0.15)', 'rgba(52, 211, 153, 0.3)');
+                statusBadge.innerText = 'EXCELLENT';
+                updateInsight("🎉 Performance Luar Biasa!", "PASSED", csatScore.toFixed(1) + "%", target + "%", gapFormatted, achFormatted, `CSAT melampaui target dengan margin <span class="highlight-val">${gapFormatted}</span>. Konsistensi layanan sangat terjaga!`);
+            } else if (gap >= 2) {
+                applyDynamicTheme('#10b981', 'rgba(16, 185, 129, 0.15)', 'rgba(16, 185, 129, 0.3)');
+                statusBadge.innerText = 'VERY GOOD';
+                updateInsight("🟢 Target Melampaui Ekspektasi", "PASSED", csatScore.toFixed(1) + "%", target + "%", gapFormatted, achFormatted, `Target dicapai dengan margin <span class="highlight-val">${gapFormatted}</span>. Pertahankan kualitas performa.`);
+            } else if (gap >= 0) {
+                applyDynamicTheme('#38bdf8', 'rgba(56, 189, 248, 0.15)', 'rgba(56, 189, 248, 0.3)');
+                statusBadge.innerText = 'GOOD';
+                updateInsight("🔵 Target Berhasil Dicapai", "PASSED", csatScore.toFixed(1) + "%", target + "%", gapFormatted, achFormatted, `Target CSAT ${target}% berhasil terpenuhi. Tingkatkan sedikit lagi untuk buffer lebih aman.`);
+            } else if (gap >= -2) {
+                applyDynamicTheme('#fbbf24', 'rgba(251, 191, 36, 0.15)', 'rgba(251, 191, 36, 0.3)');
+                statusBadge.innerText = 'FAIR';
+                updateInsight("🟡 Nyaris Memenuhi Target", "NEAR TARGET", csatScore.toFixed(1) + "%", target + "%", gapFormatted, achFormatted, `Hanya selisih tipis <span class="highlight-val">${gapFormatted}</span> dari target. Butuh sekitar <span class="highlight-val">${tambahanR3} Rating 3 murni</span> lagi untuk menutup gap.`);
+            } else {
+                applyDynamicTheme('#f43f5e', 'rgba(244, 63, 94, 0.15)', 'rgba(244, 63, 94, 0.3)');
+                statusBadge.innerText = 'NEEDS IMPROVEMENT';
+                updateInsight("🔴 Masih Di Bawah Target", "ACTION REQ.", csatScore.toFixed(1) + "%", target + "%", gapFormatted, achFormatted, `Terdapat selisih <span class="highlight-val">${gapFormatted}</span> dari target. Perlu tambahan <span class="highlight-val">${tambahanR3} Rating 3 berturut-turut</span> untuk mengejar target.`);
+            }
+        }
+
+        function updateInsight(title, tag, csat, target, gap, ach, desc) {
+            document.getElementById('insightTitle').innerText = title;
+            const tagEl = document.getElementById('insightTag');
+            tagEl.innerText = tag;
+            tagEl.style.color = 'var(--accent-color)';
+
+            document.getElementById('mCSAT').innerText = csat;
+            document.getElementById('mTarget').innerText = target;
+            
+            const gapEl = document.getElementById('mGap');
+            gapEl.innerText = gap;
+            gapEl.style.color = 'var(--accent-color)';
+
+            document.getElementById('mAch').innerText = ach;
+            document.getElementById('mAch').style.color = 'var(--accent-color)';
+
+            document.getElementById('insightDesc').innerHTML = desc;
+        }
+    </script>
+</body>
+</html>

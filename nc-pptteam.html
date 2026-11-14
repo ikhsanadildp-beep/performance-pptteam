@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard NC</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (XLSX) untuk membaca file Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome untuk Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+        body { 
+            background-color: #CAE9BE; 
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.05) 0%, transparent 40%);
+            color: #1e293b; 
+            min-height: 100vh; 
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .footer {
+            text-align: right;
+            margin-right: 15px;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            font-size: 10px;
+            color: #ffffff;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px;
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .nav-tab {
+            padding: 10px 20px; 
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-tab:hover {
+            color: #38bdf8; 
+            background: rgba(56, 189, 248, 0.08); 
+        }
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8; 
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            background-color: #ffffff;
+            font-size: 0.85rem;
+        }
+        th {
+            background: #e2e8f0;
+            font-weight: 600;
+            color: #334155;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+     <header class="bg-[#0f172a]/75 border border-white/[0.08] backdrop-blur-md text-white shadow-lg w-full">
+        <div class="w-full px-6 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <i class="fa-solid fa-chart-pie"></i> Summary NC
+            </h1>
+            <div class="nav-tabs">
+                <button class="nav-tab" onclick="window.location.href='https://dailycsat-pptteam.netlify.app/?agents=Amy%2520Andriyani%2520%28Frontline%2520Chat%29%2CReni%2520Prastiana%2520Sari%2520%28Frontline%2520Sosmed%29%2CAlif%2520Indra%2520Arditya%2520%28Frontline%2520Call%29%2CLista%2520Nadya%2520Imaniar%2520%28Frontline%2520Chat%29%2CMeilinda%2520Mahmudah%2520%28Frontline%2520Chat%29%2CMaria%2520Yustika%2520Pia%2520%28Frontline%2520Sosmed%29%2CYuliana%2520%28Frontline%2520Call%29%2CDoni%2520Mubarok%2520Ramdani%2520%28Frontline%2520Chat%29%2CPriska%2520Novenda%2520Nucifera%2520%28Frontline%2520Call%29%2CRomadhona%2520Herlin%2520Cahya%2520Kusuma%2520%28Frontline%2520Chat%29&month=ALL&week=ALL'"><i class="fa-solid fa-chart-line"></i> Dashboard CSAT</button>
+                <button class="nav-tab" onclick="window.location.href='https://calculator-pptteam.netlify.app'"><i class="fa-solid fa-square-root-variable"></i> CSAT Calculator</button>
+                <button class="nav-tab" onclick="window.location.href='https://qa-pptteam.netlify.app'"><i class="fa-solid fa-gauge-high"></i> Dashboard QA</button>
+                <button class="nav-tab" onclick="window.location.href='https://performance-pptteam.netlify.app'"><i class="fa-solid fa-arrow-trend-up"></i> Dashboard Performance</button>
+                <button class="nav-tab active"><i class="fa-solid fa-chart-pie"></i> Dashboard NC</button>
+		<button class="nav-tab" onclick="window.location.href='https://presensi-pptteam.netlify.app'"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+            <div id="breadcrumb" class="text-sm text-indigo-200">
+                <span>Home</span> / <span class="font-semibold text-white">Team Agents</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full px-6 py-6">
+        
+        <!-- Filter & Action Bar -->
+        <div class="bg-white p-4 rounded-lg shadow-sm mb-6 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <button id="btnBack" onclick="goBack()" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition duration-200">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Kembali
+                </button>
+                <h2 id="viewTitle" class="text-lg font-bold text-gray-800">Daftar NC Anggota Tim</h2>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <select id="filterWeek" onchange="refreshCurrentView()" class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="all">Semua Minggu</option>
+                </select>
+
+                <!-- Tombol Import Excel NDSAT -->
+                <label id="btnUploadNdsat" for="excelNdsatInput" class="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Import Excel NDSAT
+                </label>
+                <input type="file" id="excelNdsatInput" class="hidden" accept=".xlsx, .xls" multiple onchange="handleNdsatUpload(event)">
+
+                <!-- Tombol Reset Data -->
+                <button onclick="resetNdsatData()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can"></i> Reset
+                </button>
+            </div>
+        </div>
+	<div class="footer"><div>Created with ❤️ by <strong>Ikhsan</strong></div></div>
+
+        <!-- Content View Area -->
+        <div id="contentArea">
+            <!-- Loading State -->
+            <div id="loadingState" class="text-center py-12">
+                <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-600 mb-3"></i>
+                <p class="text-gray-500">Memuat data NDSAT dari database...</p>
+            </div>
+
+            <!-- Dynamic Table / Card Container -->
+            <div id="dynamicContainer" class="hidden"></div>
+        </div>
+
+    </main>
+
+    <!-- Script Logika & Supabase -->
+    <script>
+        const SUPABASE_URL = 'https://uiktjkqqbapqglaxqlmg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpa3Rqa3FxYmFwcWdsYXhxbG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mjk4OTIsImV4cCI6MjEwMTUwNTg5Mn0.PfrgCs3KlJDM5dY5yFshP8L-zbqHQeNEDjp0W6UbUaY';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let ndsatRecords = [];
+        let currentView = 'team_list'; // 'team_list', 'agent_overview', 'details'
+        let selectedAgent = null;
+        let selectedCategory = null;
+        let selectedRootcause = null;
+
+        const MY_TEAM_AGENTS = [
+            "Amy Andriyani",
+            "Reni Prastiana Sari",
+            "Alif Indra Arditya",
+            "Lista Nadya Imaniar",
+            "Meilinda Mahmudah",
+            "Maria Yustika Pia",
+            "Yuliana",
+            "Doni Mubarok Ramdani",
+            "Priska Novenda Nucifera",
+            "Romadhona Herlin Cahya Kusuma"
+        ];
+
+        const rootcauseColumns = [
+            { key: 'communication_skill', label: 'Communication Skill', group: 'Softskill' },
+            { key: 'empathy', label: 'Emphaty', group: 'Softskill' },
+            { key: 'emotional_control', label: 'Emotional Control', group: 'Softskill' },
+            { key: 'problem_solving', label: 'Problem Solving', group: 'Softskill' },
+            { key: 'product_knowledge', label: 'Product Knowledge', group: 'Hardskill' },
+            { key: 'system_handling', label: 'System Handling', group: 'Hardskill' }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+        });
+
+        async function loadAllData() {
+            try {
+                const { data, error } = await supabaseClient.from('ndsat_data_v2').select('*');
+                if (error) throw error;
+                ndsatRecords = data || [];
+
+                populateWeekFilter();
+                renderTeamOverview();
+            } catch (err) {
+                console.error("Gagal memuat data: ", err.message);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('dynamicContainer').innerHTML = `<p class="text-gray-500 text-center py-8 bg-white rounded-lg shadow-sm">Belum ada data NDSAT di database. Silakan import file Excel.</p>`;
+                document.getElementById('dynamicContainer').classList.remove('hidden');
+            }
+        }
+
+        async function handleNdsatUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const uploadBtn = document.getElementById('btnUploadNdsat');
+            uploadBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses ${files.length} File...`;
+
+            try {
+                let parsedRecords = [];
+
+                for (let fIdx = 0; fIdx < files.length; fIdx++) {
+                    const file = files[fIdx];
+                    const data = await file.arrayBuffer();
+                    const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+                    if (rows.length < 2) continue;
+
+                    let headerRowIdx = 0;
+                    for (let r = 0; r < Math.min(rows.length, 5); r++) {
+                        let rowStr = rows[r].join(" ").toLowerCase();
+                        if (rowStr.includes('agent name') || rowStr.includes('finding category') || rowStr.includes('case number')) {
+                            headerRowIdx = r;
+                            break;
+                        }
+                    }
+
+                    let headers = rows[headerRowIdx].map(h => h ? h.toString().trim().toLowerCase() : "");
+
+                    let idxSubmitBy = headers.findIndex(h => h.includes('submit by'));
+                    let idxAgentName = headers.findIndex(h => h.includes('agent name') || h.includes('agent'));
+                    let idxLeaderName = headers.findIndex(h => h.includes('leader name') || h.includes('leader'));
+                    let idxDepartment = headers.findIndex(h => h.includes('department'));
+                    let idxChannel = headers.findIndex(h => h.includes('channel'));
+                    let idxFindingCat = headers.findIndex(h => h.includes('finding category') || h.includes('category'));
+                    let idxParameter = headers.findIndex(h => h.includes('parameter'));
+                    let idxWeek = headers.findIndex(h => h.includes('week'));
+                    let idxCaseNum = headers.findIndex(h => h.includes('case number') || h.includes('case'));
+                    let idxEvidence = headers.findIndex(h => h.includes('evidence'));
+                    let idxFindingIssue = headers.findIndex(h => h.includes('finding issue') || h.includes('issue'));
+                    let idxDetail = headers.findIndex(h => h.includes('detail'));
+                    let idxCreditScore = headers.findIndex(h => h.includes('credit score') || h.includes('score'));
+
+                    let dataStartRow = headerRowIdx + 1;
+
+                    for (let i = dataStartRow; i < rows.length; i++) {
+                        let r = rows[i];
+                        let agent = idxAgentName !== -1 ? r[idxAgentName]?.toString().trim() : "";
+                        if (!agent) continue; 
+
+                        parsedRecords.push({
+                            submit_by: idxSubmitBy !== -1 ? r[idxSubmitBy]?.toString().trim() : "",
+                            agent_name: agent,
+                            leader_name: idxLeaderName !== -1 ? r[idxLeaderName]?.toString().trim() : "",
+                            department: idxDepartment !== -1 ? r[idxDepartment]?.toString().trim() : "",
+                            channel: idxChannel !== -1 ? r[idxChannel]?.toString().trim() : "",
+                            finding_category: idxFindingCat !== -1 ? r[idxFindingCat]?.toString().trim() : "",
+                            parameter: idxParameter !== -1 ? r[idxParameter]?.toString().trim() : "",
+                            week: idxWeek !== -1 && r[idxWeek] ? r[idxWeek].toString().trim() : "Week 1",
+                            case_number: idxCaseNum !== -1 ? r[idxCaseNum]?.toString().trim() : "",
+                            evidence: idxEvidence !== -1 ? r[idxEvidence]?.toString().trim() : "",
+                            finding_issue: idxFindingIssue !== -1 ? r[idxFindingIssue]?.toString().trim() : "",
+                            detail: idxDetail !== -1 ? r[idxDetail]?.toString().trim() : "",
+                            credit_score: idxCreditScore !== -1 ? r[idxCreditScore]?.toString().trim() : ""
+                        });
+                    }
+                }
+
+                if (parsedRecords.length > 0) {
+                    await supabaseClient.from('ndsat_data_v2').delete().neq('id', 0);
+                    const { error: insErr } = await supabaseClient.from('ndsat_data_v2').insert(parsedRecords);
+                    if (insErr) throw insErr;
+
+                    alert(`Berhasil mengimpor ${files.length} file Excel (${parsedRecords.length} baris data)!`);
+                    await loadAllData();
+                } else {
+                    alert("Tidak ada data valid yang terbaca. Pastikan format kolom sesuai dengan template Excel Anda.");
+                }
+
+            } catch (err) {
+                console.error("Gagal memproses Excel:", err);
+                alert("Terjadi kesalahan saat memproses file Excel: " + err.message);
+            } finally {
+                uploadBtn.innerHTML = `<i class="fa-solid fa-file-excel"></i> Import Excel NDSAT`;
+                event.target.value = '';
+            }
+        }
+
+        async function resetNdsatData() {
+            if (!confirm("Apakah Anda yakin ingin MENGHAPUS SEMUA data NDSAT?")) return;
+            try {
+                await supabaseClient.from('ndsat_data_v2').delete().neq('id', 0);
+                ndsatRecords = [];
+                renderTeamOverview();
+                alert("Data berhasil direset.");
+            } catch (err) {
+                alert("Gagal menghapus data: " + err.message);
+            }
+        }
+
+        function populateWeekFilter() {
+            const weeks = [...new Set(ndsatRecords.map(item => item.week))].filter(Boolean);
+            const select = document.getElementById('filterWeek');
+            let currentVal = select.value;
+            select.innerHTML = '<option value="all">Semua Minggu</option>';
+            weeks.forEach(w => {
+                select.innerHTML += `<option value="${w}">${w}</option>`;
+            });
+            select.value = currentVal;
+        }
+
+        function getFilteredNdsat() {
+            const selectedWeek = document.getElementById('filterWeek').value;
+            if (selectedWeek === 'all') return ndsatRecords;
+            return ndsatRecords.filter(item => item.week == selectedWeek);
+        }
+
+        function refreshCurrentView() {
+            if (currentView === 'team_list') {
+                renderTeamOverview();
+            } else if (currentView === 'agent_detail') {
+                renderAgentDetail(selectedAgent);
+            }
+        }
+
+        // TAMPILAN AWAL: DAFTAR AGENT DENGAN NC SCORE
+        // TAMPILAN AWAL: DAFTAR AGENT DENGAN NC SCORE (SUM DARI CREDIT SCORE)
+        function renderTeamOverview() {
+            currentView = 'team_list';
+            selectedAgent = null;
+            document.getElementById('btnBack').classList.add('hidden');
+            document.getElementById('viewTitle').innerText = 'Daftar Anggota Tim NDSAT (NC Score Total)';
+            document.getElementById('breadcrumb').innerHTML = '<span>Home</span> / <span class="font-semibold text-white">Team Agents</span>';
+
+            const ndsatData = getFilteredNdsat();
+            const container = document.getElementById('dynamicContainer');
+            document.getElementById('loadingState').classList.add('hidden');
+
+            const agentScores = {};
+            ndsatData.forEach(item => {
+                const agent = item.agent_name || 'Unknown';
+                // Ambil nilai credit_score, ubah ke angka (jika kosong/bukan angka, dihitung 0)
+                const scoreVal = parseFloat(item.credit_score) || 0;
+                
+                // Menjumlahkan (sum) nilai credit score per agent
+                agentScores[agent] = (agentScores[agent] || 0) + scoreVal;
+            });
+
+            // Urutkan dari jumlah total score terbesar (atau bisa dibalik sesuai kebutuhan)
+            const sortedAgents = [...MY_TEAM_AGENTS].sort((a, b) => {
+                return (agentScores[b] || 0) - (agentScores[a] || 0);
+            });
+
+            let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">`;
+
+            sortedAgents.forEach(agent => {
+                const ncScore = agentScores[agent] || 0;
+                html += `
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition cursor-pointer flex justify-between items-center" onclick="renderAgentDetail('${agent}')">
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base mb-1"><i class="fa-solid fa-user-tie text-indigo-600 mr-2"></i>${agent}</h3>
+                            <p class="text-xs text-gray-500">Klik untuk melihat detail finding</p>
+                        </div>
+                        <div class="bg-red-50 text-red-700 font-bold px-3 py-1.5 rounded-full text-sm border border-red-100">
+                            NC Score: ${Number.isInteger(ncScore) ? ncScore : ncScore.toFixed(2)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+            container.classList.remove('hidden');
+        }
+
+        // TAMPILAN KETIKA NAMA AGENT DIKLIK (LIST DETAIL)
+        // TAMPILAN KETIKA NAMA AGENT DIKLIK (LIST DETAIL)
+        // TAMPILAN KETIKA NAMA AGENT DIKLIK (LIST DETAIL)
+        function renderAgentDetail(agentName) {
+            currentView = 'agent_detail';
+            selectedAgent = agentName;
+
+            document.getElementById('btnBack').classList.remove('hidden');
+            document.getElementById('viewTitle').innerText = `Detail Finding Agent: ${agentName}`;
+            document.getElementById('breadcrumb').innerHTML = `<span>Home</span> / <span class="cursor-pointer text-indigo-600 hover:underline" onclick="renderTeamOverview()">Team Agents</span> / <span class="font-semibold text-white">${agentName}</span>`;
+
+            const container = document.getElementById('dynamicContainer');
+            
+            // Ambil data dan urutkan berdasarkan Category (Quality dulu, baru CSAT), lalu berdasarkan Week
+            const agentData = getFilteredNdsat()
+                .filter(item => (item.agent_name || '').trim().toLowerCase() === agentName.trim().toLowerCase())
+                .sort((a, b) => {
+                    const catA = (a.finding_category || '').trim().toLowerCase();
+                    const catB = (b.finding_category || '').trim().toLowerCase();
+
+                    // 1. Urutkan berdasarkan Category (Quality diutamakan sebelum CSAT)
+                    let scoreA = catA.includes('quality') ? 1 : (catA.includes('csat') ? 2 : 3);
+                    let scoreB = catB.includes('quality') ? 1 : (catB.includes('csat') ? 2 : 3);
+
+                    if (scoreA !== scoreB) {
+                        return scoreA - scoreB;
+                    }
+
+                    // 2. Jika Category sama, urutkan berdasarkan Week terkecil
+                    const numA = parseInt((a.week || '').replace(/[^0-9]/g, '')) || 0;
+                    const numB = parseInt((b.week || '').replace(/[^0-9]/g, '')) || 0;
+                    return numA - numB;
+                });
+
+            let html = `
+                <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 w-full">
+                    <div class="w-full">
+                        <table class="w-full table-fixed divide-y divide-gray-200 text-left">
+                            <thead>
+                                <tr class="text-xs">
+                                    <th class="w-[14%] px-2 py-3">Category</th>
+                                    <th class="w-[12%] px-2 py-3">Parameter</th>
+                                    <th class="w-[7%] px-2 py-3 text-center">Week</th>
+                                    <th class="w-[10%] px-2 py-3 text-center">Case No</th>
+                                    <th class="w-[20%] px-2 py-3">Finding Issue</th>
+                                    <th class="w-[27%] px-2 py-3">Detail</th>
+                                    <th class="w-[10%] px-2 py-3 text-center">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white text-xs">
+            `;
+
+            if (agentData.length > 0) {
+                agentData.forEach(item => {
+                    html += `
+                        <tr>
+                            <td class="px-2 py-3 font-semibold text-gray-800 break-words">${item.finding_category || '-'}</td>
+                            <td class="px-2 py-3 break-words">${item.parameter || '-'}</td>
+                            <td class="px-2 py-3 text-center">${item.week || '-'}</td>
+                            <td class="px-2 py-3 text-center font-medium text-indigo-600 break-all">${item.case_number || '-'}</td>
+                            <td class="px-2 py-3 text-red-600 font-medium break-words">${item.finding_issue || '-'}</td>
+                            <td class="px-2 py-3 text-gray-700 break-words">${item.detail || '-'}</td>
+                            <td class="px-2 py-3 text-center font-bold">${item.credit_score || '-'}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="7" class="text-center py-6 text-gray-500">Tidak ada data finding untuk agent ini.</td></tr>`;
+            }
+
+            html += `</tbody></table></div></div>`;
+            container.innerHTML = html;
+        }
+
+        function goBack() {
+            renderTeamOverview();
+        }
+    </script>
+</body>
+</html>

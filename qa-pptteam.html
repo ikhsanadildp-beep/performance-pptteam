@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Laporan QA</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- SheetJS (XLSX) untuk membaca file Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Supabase Client CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .sticky-col {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 10;
+            background-color: #ffffff;
+            border-right: 2px solid #e5e7eb !important;
+        }
+        body { 
+            background-color: #CAE9BE; 
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(192, 132, 252, 0.05) 0%, transparent 40%);
+            color: var(--text-main); 
+            min-height: 100vh; 
+            padding: 28px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        thead th.sticky-col {
+            z-index: 20;
+            background-color: #f3f4f6 !important;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+        .navbar {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            margin-left: -28px;
+            margin-right: -28px;
+            width: calc(100% + 56px);
+            margin-top: -28px;
+            margin-bottom: 24px;
+        }
+
+        .nav-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px;
+            min-height: 60px;
+        }
+
+        .brand {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.3px;
+        }
+        .nav-tab {
+            padding: 6px 16px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .nav-tab:hover {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+        }
+        .nav-tab.active {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.15));
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateY(-1px);
+        }
+        tr.bg-gray-100 td.sticky-col,
+        tr.font-bold td.sticky-col {
+            background-color: #f3f4f6 !important;
+        }
+	.footer {
+	text-align: right;
+	margin-right: 16px;
+	margin-bottom: 10px;
+            font-size: 10px;
+            color: #ffffff;
+        }
+        :root {
+            --bg-color: #030712;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-shield-halved"></i>Performance Monitor Engine
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab" onclick="window.location.href='https://dailycsat-pptteam.netlify.app/?agents=Amy%2520Andriyani%2520%28Frontline%2520Chat%29%2CReni%2520Prastiana%2520Sari%2520%28Frontline%2520Sosmed%29%2CAlif%2520Indra%2520Arditya%2520%28Frontline%2520Call%29%2CLista%2520Nadya%2520Imaniar%2520%28Frontline%2520Chat%29%2CMeilinda%2520Mahmudah%2520%28Frontline%2520Chat%29%2CMaria%2520Yustika%2520Pia%2520%28Frontline%2520Sosmed%29%2CYuliana%2520%28Frontline%2520Call%29%2CDoni%2520Mubarok%2520Ramdani%2520%28Frontline%2520Chat%29%2CPriska%2520Novenda%2520Nucifera%2520%28Frontline%2520Call%29%2CRomadhona%2520Herlin%2520Cahya%2520Kusuma%2520%28Frontline%2520Chat%29&month=ALL&week=ALL'"><i class="fa-solid fa-chart-line"></i>Dashboard CSAT</button>
+                <button class="nav-tab" onclick="window.location.href='https://calculator-pptteam.netlify.app'"><i class="fa-solid fa-square-root-variable"></i>CSAT Calculator</button>
+                <button class="nav-tab active"><i class="fa-solid fa-gauge-high"></i>Dashboard QA</button>
+                <button class="nav-tab" onclick="window.location.href='https://performance-pptteam.netlify.app'"><i class="fa-solid fa-arrow-trend-up"></i>Dashboard Performance</button>
+		<button class="nav-tab" onclick="window.location.href='https://nc-pptteam.netlify.app'"><i class="fa-solid fa-chart-pie"></i> Summary NDSAT Tim QA</button>
+		<button class="nav-tab" onclick="window.location.href='https://presensi-pptteam.netlify.app'"><i class="fa-solid fa-calendar-days"></i> Rekap Kehadiran</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6 max-w-7xl">
+        <!-- Header Dashboard -->
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Dashboard Laporan QA</h1>
+            </div>
+            <div>
+                <!-- Tombol Upload Excel QA -->
+                <label id="btnUploadQa" for="excelQaInput" class="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200 text-sm">
+                    Import Excel QA (Data Mentah)
+                </label>
+                <input type="file" id="excelQaInput" class="hidden" accept=".xlsx, .xls" multiple onchange="handleQaUpload(event)"> 
+                <button onclick="resetSupabaseData()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md shadow transition duration-200 text-sm ml-2">
+                    Reset Data
+                </button>
+            </div>
+        </div>
+	<div class="footer"><div>Created with ❤️ by <strong>Ikhsan</strong></div></div>
+
+        <!-- Bagian Rekap Nilai QA (Tabel 1 - Pivot Rerata Nilai QA Weekly) -->
+        <div class="card p-4 shadow-sm bg-white rounded mb-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                <h3 class="text-xl font-bold text-gray-800">Rekap Rerata Nilai QA Mingguan</h3>
+                <!-- Filter Khusus Rekap Nilai Berdasarkan Nama Agent -->
+                <div class="w-full md:w-72">
+                    <select id="filterMatrixAgent" class="w-full bg-white text-gray-800 border-gray-300 rounded-md shadow-sm p-2 border text-sm" onchange="renderMatrixTable()">
+                        <option value="all">Semua Anggota Tim</option>
+                    </select>
+                </div>
+            </div>
+            <div id="qaMatrixContainer" class="overflow-x-auto">
+                <p class="text-gray-500 text-center py-4">Memuat data dari database...</p>
+            </div>
+        </div>
+
+        <!-- Bagian Detail Finding & Temuan QA -->
+        <div class="card p-4 shadow-sm bg-white rounded">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Detail Finding & Temuan QA</h3>
+            
+            <!-- Filter Khusus untuk Detail Finding (Agent & Week) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-gray-50 p-4 rounded-md border">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Filter Finding by Agent:</label>
+                    <select id="filterFindingAgent" class="w-full bg-white text-gray-800 border-gray-300 rounded-md shadow-sm p-2 border text-sm" onchange="renderFindingTable()">
+                        <option value="all">Semua Anggota Tim</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Filter Finding by Week:</label>
+                    <select id="filterFindingWeek" class="w-full bg-white text-gray-800 border-gray-300 rounded-md shadow-sm p-2 border text-sm" onchange="renderFindingTable()">
+                        <option value="all">Semua Minggu</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="qaFindingContainer" class="space-y-4">
+                <p class="text-gray-500 text-center py-4">Memuat data dari database...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var qaReportData = {
+            weeks: [],
+            weekLabelsMap: {}, 
+            matrixAgents: [],
+            findingAgents: [],
+            findingWeeks: [],
+            matrixRows: [],
+            findings: []
+        };
+
+        // DAFTAR NAMA TIM KAMU (Hardcode langsung tanpa spreadsheet)
+        let MY_TEAM_AGENTS = [
+            "Amy Andriyani",
+            "Reni Prastiana Sari",
+            "Alif Indra Arditya",
+            "Lista Nadya Imaniar",
+            "Meilinda Mahmudah",
+            "Maria Yustika Pia",
+            "Yuliana",
+            "Doni Mubarok Ramdani",
+            "Priska Novenda Nucifera",
+            "Romadhona Herlin Cahya Kusuma"
+        ];
+
+        const SUPABASE_URL = 'https://uiktjkqqbapqglaxqlmg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpa3Rqa3FxYmFwcWdsYXhxbG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mjk4OTIsImV4cCI6MjEwMTUwNTg5Mn0.PfrgCs3KlJDM5dY5yFshP8L-zbqHQeNEDjp0W6UbUaY';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            loadFromSupabase();
+        });
+
+        // Fungsi bantu untuk mencocokkan nama agent berdasarkan daftar MY_TEAM_AGENTS
+        function getMatchedTeamAgent(rawAgentName) {
+            if (!rawAgentName) return null;
+            
+            let cleanNameOnly = rawAgentName.replace(/\s*\(.*?\)\s*/g, '').trim().toLowerCase();
+            
+            if (MY_TEAM_AGENTS.length === 0) return rawAgentName.trim(); 
+            
+            let found = MY_TEAM_AGENTS.find(a => {
+                let cleanTeamMember = a.replace(/\s*\(.*?\)\s*/g, '').trim().toLowerCase();
+                return cleanTeamMember === cleanNameOnly || cleanTeamMember.includes(cleanNameOnly) || cleanNameOnly.includes(cleanTeamMember);
+            });
+            
+            return found ? found.trim() : null; 
+        }
+
+        async function loadFromSupabase() {
+            try {
+                const { data: matrixData, error: errMatrix } = await supabaseClient.from('qa_matrix').select('*');
+                if (errMatrix) throw errMatrix;
+
+                const { data: findingData, error: errFinding } = await supabaseClient.from('qa_findings').select('*');
+                if (errFinding) throw errFinding;
+
+                if (matrixData && matrixData.length > 0) {
+                    let tempMatrixRows = [];
+                    let uniqueWeeksSet = new Set();
+                    let weekLabelsMap = {};
+                    let uniqueMatrixAgents = new Set();
+
+                    matrixData.forEach(item => {
+                        let matchedAgent = item.agent === 'AVG' ? 'AVG' : getMatchedTeamAgent(item.agent);
+                        if (item.agent !== 'AVG' && !matchedAgent) return; // Lewati jika tidak terdaftar di tim
+
+                        let cleanAgentName = item.agent === 'AVG' ? 'AVG' : matchedAgent;
+
+                        let rawChannel = (item.channel || '').trim();
+                        let lowerChan = rawChannel.toLowerCase();
+                        let normalizedChannel = (lowerChan === 'facebook' || lowerChan === 'instagram' || lowerChan === 'fb' || lowerChan === 'ig') ? 'Sosmed' : rawChannel;
+
+                        if (cleanAgentName !== 'AVG') {
+                            uniqueMatrixAgents.add(cleanAgentName);
+                        }
+
+                        tempMatrixRows.push({
+                            agent: cleanAgentName,
+                            channel: normalizedChannel,
+                            isAvg: item.is_avg,
+                            weeks: item.week_data || {}
+                        });
+                        let existingRow = tempMatrixRows.find(r => r.agent === cleanAgentName);
+                        if (!existingRow) {
+                            existingRow = {
+                                agent: cleanAgentName,
+                                channel: '', 
+                                isAvg: item.is_avg,
+                                weeks: {}
+                            };
+                            tempMatrixRows.push(existingRow);
+                        }
+                        if (item.week_data) {
+                            Object.keys(item.week_data).forEach(weekName => {
+                                uniqueWeeksSet.add(weekName);
+                                if (!weekLabelsMap[weekName]) {
+                                    weekLabelsMap[weekName] = getWeekDateRange2026(weekName);
+                                }
+                                let val = item.week_data[weekName];
+                                if (existingRow.weeks[weekName] === undefined) {
+                                    existingRow.weeks[weekName] = val;
+                                } else {
+                                    existingRow.weeks[weekName] = parseFloat(((existingRow.weeks[weekName] + val) / 2).toFixed(1));
+                                }
+                            });
+                        }
+                    });
+
+                    let tempFindings = [];
+                    let uniqueFindingAgents = new Set();
+                    let uniqueFindingWeeks = new Set();
+
+                    if (findingData && findingData.length > 0) {
+                        findingData.forEach(f => {
+                            let matchedAgent = getMatchedTeamAgent(f.agent_name);
+                            if (!matchedAgent) return; 
+
+                            tempFindings.push({
+                                ms: f.ms,
+                                agentName: matchedAgent,
+                                finding: f.finding || "-",
+                                originalFinding: f.original_finding || f.finding || "-",
+                                week: f.week
+                            });
+                            uniqueFindingAgents.add(matchedAgent);
+                            if (f.week) {
+                                uniqueFindingWeeks.add(f.week);
+                                if (!weekLabelsMap[f.week]) {
+                                    weekLabelsMap[f.week] = getWeekDateRange2026(f.week);
+                                }
+                            }
+                        });
+                    }
+
+                    let sortedWeeks = Array.from(uniqueWeeksSet).sort((a, b) => {
+                        let numA = parseInt(a.replace(/\D/g, '')) || 0;
+                        let numB = parseInt(b.replace(/\D/g, '')) || 0;
+                        return numA - numB;
+                    });
+
+                    let sortedFindingWeeks = Array.from(uniqueFindingWeeks).sort((a, b) => {
+                        let numA = parseInt(a.replace(/\D/g, '')) || 0;
+                        let numB = parseInt(b.replace(/\D/g, '')) || 0;
+                        return numA - numB;
+                    });
+
+                    qaReportData = {
+                        weeks: sortedWeeks,
+                        weekLabelsMap: weekLabelsMap,
+                        matrixAgents: Array.from(uniqueMatrixAgents).sort(),
+                        findingAgents: Array.from(uniqueFindingAgents).sort(),
+                        findingWeeks: sortedFindingWeeks,
+                        matrixRows: tempMatrixRows,
+                        findings: tempFindings
+                    };
+
+                    initFilters();
+                    renderMatrixTable();
+                    renderFindingTable();
+                } else {
+                    document.getElementById('qaMatrixContainer').innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada data di database. Silakan import file Excel QA.</p>`;
+                    document.getElementById('qaFindingContainer').innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada data di database.</p>`;
+                }
+            } catch (err) {
+                console.error("Gagal memuat data dari Supabase: ", err.message);
+            }
+        }
+
+        async function saveToSupabase(matrixRows, findings) {
+            try {
+                const { data: existingMatrix, error: errFetchMatrix } = await supabaseClient.from('qa_matrix').select('*');
+                if (errFetchMatrix) throw errFetchMatrix;
+
+                let matrixMap = {};
+                if (existingMatrix) {
+                    existingMatrix.forEach(item => {
+                        let key = `${item.agent}`;
+                        matrixMap[key] = {
+                            agent: item.agent,
+                            channel: '',
+                            is_avg: item.is_avg,
+                            week_data: item.week_data || {}
+                        };
+                    });
+                }
+
+                matrixRows.forEach(row => {
+                    let key = `${row.agent}`;
+                    if (!matrixMap[key]) {
+                        matrixMap[key] = {
+                            agent: row.agent,
+                            channel: '',
+                            is_avg: row.isAvg,
+                            week_data: {}
+                        };
+                    }
+                    Object.keys(row.weeks).forEach(w => {
+                        matrixMap[key].week_data[w] = row.weeks[w];
+                    });
+                });
+
+                await supabaseClient.from('qa_matrix').delete().neq('id', 0);
+                const { error: errInsMatrix } = await supabaseClient.from('qa_matrix').insert(Object.values(matrixMap));
+                if (errInsMatrix) throw errInsMatrix;
+
+                const { data: existingFindings, error: errFetchFind } = await supabaseClient.from('qa_findings').select('*');
+                if (errFetchFind) throw errFetchFind;
+
+                let allFindingsMap = {};
+                if (existingFindings) {
+                    existingFindings.forEach(f => {
+                        let uniqueKey = `${f.ms}|${f.week}|${f.agent_name}`;
+                        allFindingsMap[uniqueKey] = {
+                            ms: f.ms,
+                            agent_name: f.agent_name,
+                            finding: f.finding,
+                            original_finding: f.original_finding,
+                            week: f.week
+                        };
+                    });
+                }
+
+                findings.forEach(f => {
+                    let uniqueKey = `${f.ms}|${f.week}|${f.agentName}`;
+                    if (!allFindingsMap[uniqueKey]) {
+                        allFindingsMap[uniqueKey] = {
+                            ms: f.ms,
+                            agent_name: f.agentName,
+                            finding: f.finding,
+                            original_finding: f.originalFinding,
+                            week: f.week
+                        };
+                    }
+                });
+
+                await supabaseClient.from('qa_findings').delete().neq('id', 0);
+                let finalFindingsArray = Object.values(allFindingsMap);
+                if (finalFindingsArray.length > 0) {
+                    const { error: errInsFind } = await supabaseClient.from('qa_findings').insert(finalFindingsArray.map(f => ({
+                        ms: f.ms,
+                        agent_name: f.agent_name,
+                        finding: f.finding,
+                        original_finding: f.original_finding,
+                        week: f.week
+                    })));
+                    if (errInsFind) throw errInsFind;
+                }
+            } catch (err) {
+                console.error("Gagal menyimpan ke Supabase: ", err.message);
+                alert("Gagal menyimpan ke database: " + err.message);
+            }
+        }
+
+        function getISOWeekFromDate(dateObj) {
+            if (!dateObj || isNaN(dateObj)) return "Unknown Week";
+            let year = dateObj.getFullYear();
+            let month = dateObj.getMonth();
+            let day = dateObj.getDate();
+            let dateNum = year * 10000 + (month + 1) * 100 + day;
+
+            if (dateNum >= 20260101 && dateNum <= 20261231) {
+                let startOfYear = new Date(2026, 0, 1);
+                let startDayOfWeek = startOfYear.getDay() || 7;
+                let adjustedStart = new Date(2026, 0, 1 - startDayOfWeek + 1);
+                let diffDays = Math.floor((dateObj - adjustedStart) / (24 * 60 * 60 * 1000));
+                let weekNo = Math.floor(diffDays / 7) + 1;
+                if (weekNo < 1) weekNo = 1;
+                return `Week ${weekNo}`;
+            }
+
+            let startOfYear = new Date(dateObj.getFullYear(), 0, 1);
+            let diffDays = Math.floor((dateObj - startOfYear) / (24 * 60 * 60 * 1000));
+            let weekNo = Math.ceil((diffDays + startOfYear.getDay() + 1) / 7);
+            return `Week ${weekNo}`;
+        }
+
+        function getWeekDateRange2026(weekStr) {
+            let match = weekStr.match(/\d+/);
+            if (!match) return weekStr;
+            let weekNum = parseInt(match[0]);
+
+            let jan1 = new Date(2026, 0, 1);
+            let dayOfWeek = jan1.getDay() || 7;
+            let yearStart = new Date(2026, 0, 1 - dayOfWeek + 1);
+
+            let targetMonday = new Date(yearStart.getTime());
+            targetMonday.setDate(targetMonday.getDate() + (weekNum - 1) * 7);
+
+            let targetSunday = new Date(targetMonday.getTime());
+            targetSunday.setDate(targetMonday.getDate() + 6);
+
+            const options = { day: 'numeric', month: 'short' };
+            return `${weekStr} (${targetMonday.toLocaleDateString('id-ID', options)} - ${targetSunday.toLocaleDateString('id-ID', options)})`;
+        }
+
+        // Helper khusus untuk memparsing format tanggal MM/DD/YY (atau format umum lainnya)
+        function parseDateMMDDYY(dateVal) {
+            if (!dateVal) return null;
+
+            // Jika formatnya berupa serial number Excel
+            if (typeof dateVal === 'number') {
+                return new Date((dateVal - (25567 + 2)) * 86400 * 1000);
+            }
+
+            let strVal = dateVal.toString().trim();
+            if (!strVal) return null;
+
+            // Ambil bagian tanggalnya saja (pisahkan dengan spasi jika ada waktu di belakangnya)
+            let cleanStr = strVal.split(' ')[0];
+            let parts = cleanStr.split(/[\/\-]/);
+
+            if (parts.length === 3) {
+                let p1 = parseInt(parts[0], 10);
+                let p2 = parseInt(parts[1], 10);
+                let p3 = parseInt(parts[2], 10);
+
+                let month, day, year;
+
+                // Asumsi format MM/DD/YY atau MM/DD/YYYY
+                month = p1;
+                day = p2;
+                year = p3;
+
+                // Normalisasi tahun 2 digit (misal: '26' menjadi 2026)
+                if (year < 100) {
+                    year += 2000;
+                }
+
+                let parsed = new Date(year, month - 1, day);
+                if (!isNaN(parsed)) {
+                    return parsed;
+                }
+            }
+
+            // Fallback ke parser standar JS jika format string berbeda
+            let fallbackDate = new Date(strVal);
+            return !isNaN(fallbackDate) ? fallbackDate : null;
+        }
+
+        async function handleQaUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            const uploadBtn = document.getElementById('btnUploadQa');
+            uploadBtn.innerText = `Memproses ${files.length} File...`;
+            uploadBtn.style.pointerEvents = 'none';
+
+            try {
+                let allRawDataRecords = [];
+                let uniqueWeeksSet = new Set();
+                let weekLabelsMap = {};
+                let uniqueFindingWeeks = new Set();
+                let tempFindings = [];
+
+                for (let fIdx = 0; fIdx < files.length; fIdx++) {
+    const file = files[fIdx];
+    
+    // --- DETEKSI WEEK DARI NAMA FILE ---
+    let fileNameLower = file.name.toLowerCase();
+    let detectedWeekName = "Week 1"; // Default jika tidak ketemu
+    
+    // Mencari pola seperti "week 40", "w 40", atau "wk 40"
+    let weekRegex = /(?:week|wk|w)\s*(\d+)/i;
+    let matchWeek = fileNameLower.match(weekRegex);
+    
+    if (matchWeek && matchWeek[1]) {
+        detectedWeekName = `Week ${matchWeek[1]}`;
+    }
+    // ----------------------------------
+
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+    
+    if (rows.length < 2) continue;
+
+                    let headers = rows[0].map(h => h ? h.toString().trim().toLowerCase() : "");
+                    
+                    let idxMs = headers.findIndex(h => 
+                        h.includes('call activity') || 
+                        h === 'case number: case number' || h === 'case number' || 
+                        h.includes('messaging session name') || h.includes('messaging session')
+                    );
+                    
+                    let idxAgent = headers.findIndex(h => 
+                        h === 'agent name frontline chat' || 
+                        h === 'agent name frontline email' || 
+                        h === 'agent name frontline call' ||
+                        h.includes('agent name frontline')
+                    );
+                    if (idxAgent === -1) {
+                        idxAgent = headers.findIndex(h => h.includes('agent') || h.includes('user'));
+                    }
+
+                    let idxScore = headers.findIndex(h => h.includes('qa score') || h.includes('grouping qa score') || h.includes('total qa score'));
+                    
+                    let idxComment = headers.findIndex(h => 
+                        h === 'comment qa call' || 
+                        h === 'comment qa emai' || h === 'comment qa email' || 
+                        h === 'comment qa chat' ||
+                        (h.includes('comment qa') && !h.includes('date') && !h.includes('by') && !h.includes('leader') && !h.includes('submit'))
+                    );
+
+                    let idxRekomendasi = headers.findIndex(h =>
+                        h === 'rekomendasi qa chat' ||
+                        h === 'rekomendasi qa call' ||
+                        h === 'rekomendasi qa email' ||
+                        h.includes('rekomendasi qa')
+                    );
+                   
+                    // Membaca kolom tanggal: Messaging Session: Created Date/Time, Case: Date/Time Opened, atau Date/Time Sampling Call
+                    let idxWeekDate = headers.findIndex(h => {
+    let cleanHeader = h.trim();
+    return cleanHeader === 'date/time sampling chat' ||
+           cleanHeader === 'case: date/time opened' ||
+           cleanHeader === 'date/time sampling call';
+});
+                    if (idxWeekDate === -1) {
+                        idxWeekDate = headers.findIndex(h => h.includes('date') || h.includes('time'));
+                    }
+                                  
+                    let idxSource = headers.findIndex(h => h === 'source' || h.includes('channel'));
+
+                    if (idxAgent === -1 || idxScore === -1) continue;
+
+                    for (let i = 1; i < rows.length; i++) {
+                        let r = rows[i];
+                        let ms = idxMs !== -1 ? r[idxMs]?.toString().trim() : `MS-${fIdx}-${i}`;
+                        let rawAgent = r[idxAgent]?.toString().trim();
+                        let matchedAgent = getMatchedTeamAgent(rawAgent);
+                        
+                        if (!matchedAgent) continue; 
+
+                        let scoreVal = parseFloat(r[idxScore]);
+                        let comment = idxComment !== -1 ? r[idxComment]?.toString().trim() : "";
+                        let rekomendasiVal = idxRekomendasi !== -1 ? r[idxRekomendasi]?.toString().trim() : "";
+                        let rawSource = idxSource !== -1 ? r[idxSource]?.toString().trim() : "";
+                        
+                        let source = "Chat";
+                        let lowerRawSource = rawSource.toLowerCase();
+
+                        if (lowerRawSource.includes('call') || lowerRawSource.includes('frontline') || combinedRowStrIncludesCall(r) || rawAgent.toLowerCase().includes('frontline call') || ms.toLowerCase().includes('call')) {
+                            source = "Call";
+                        } else if (lowerRawSource.includes('facebook') || lowerRawSource.includes('instagram') || lowerRawSource.includes('ig') || lowerRawSource.includes('fb')) {
+                            source = "Sosmed";
+                        } else if (rawSource !== "") {
+                            source = rawSource;
+                        }
+
+                        // Di dalam perulangan baris (for row):
+let weekName = detectedWeekName; // Langsung ambil dari nama file
+
+uniqueWeeksSet.add(weekName);
+if (!weekLabelsMap[weekName]) {
+    weekLabelsMap[weekName] = getWeekDateRange2026(weekName);
+}
+
+allRawDataRecords.push({
+    agent: matchedAgent,
+    channel: source,
+    week: weekName,
+    score: !isNaN(scoreVal) ? scoreVal : 0
+});
+
+                        let lowerComment = comment.toLowerCase();
+                        let isInvalidFinding = (comment === "" || comment === "-" || lowerComment === "null" || lowerComment.includes("tidak ada finding") || lowerComment.includes("tidak ada findnig") || lowerComment.includes("tidka ada finding") || lowerComment.includes("tidak ada temuan") || lowerComment.includes(" aman ") || lowerComment === "aman");
+
+                        if (!isInvalidFinding) {
+                            uniqueFindingWeeks.add(weekName);
+                            let finalRekomendasi = rekomendasiVal !== "" ? rekomendasiVal : "";
+
+                            tempFindings.push({
+                                ms: ms || "-",
+                                agentName: matchedAgent,
+                                finding: finalRekomendasi,
+                                originalFinding: comment,
+                                week: weekName
+                            });
+                        }
+                    }
+                }
+
+                let pivotMap = {};
+                allRawDataRecords.forEach(item => {
+                    let key = `${item.agent}`;
+                    if (!pivotMap[key]) {
+                        pivotMap[key] = { agent: item.agent, channel: '', weeks: {} };
+                    }
+                    if (!pivotMap[key].weeks[item.week]) {
+                        pivotMap[key].weeks[item.week] = { sum: 0, count: 0 };
+                    }
+                    pivotMap[key].weeks[item.week].sum += item.score;
+                    pivotMap[key].weeks[item.week].count += 1;
+                });
+
+                let sortedWeeks = Array.from(uniqueWeeksSet).sort((a, b) => {
+                    let numA = parseInt(a.replace(/\D/g, '')) || 0;
+                    let numB = parseInt(b.replace(/\D/g, '')) || 0;
+                    return numA - numB;
+                });
+
+                let mergedMatrixMap = {};
+                Object.values(pivotMap).forEach(p => {
+                    let rawChan = (p.channel || '').trim();
+                    let lowerChan = rawChan.toLowerCase();
+                    let channel = (lowerChan === 'facebook' || lowerChan === 'instagram' || lowerChan === 'fb' || lowerChan === 'ig') ? 'Sosmed' : rawChan;
+
+                    let key = `${p.agent}|${channel}`;
+                    if (!mergedMatrixMap[key]) {
+                        mergedMatrixMap[key] = { agent: p.agent, channel: channel, weeksRaw: {} };
+                    }
+
+                    Object.keys(p.weeks).forEach(w => {
+                        if (!mergedMatrixMap[key].weeksRaw[w]) {
+                            mergedMatrixMap[key].weeksRaw[w] = { sum: 0, count: 0 };
+                        }
+                        mergedMatrixMap[key].weeksRaw[w].sum += p.weeks[w].sum;
+                        mergedMatrixMap[key].weeksRaw[w].count += p.weeks[w].count;
+                    });
+                });
+
+                let tempMatrixRows = [];
+                Object.values(mergedMatrixMap).forEach(item => {
+                    let weekScores = {};
+                    sortedWeeks.forEach(w => {
+                        if (item.weeksRaw[w] && item.weeksRaw[w].count > 0) {
+                            weekScores[w] = parseFloat((item.weeksRaw[w].sum / item.weeksRaw[w].count).toFixed(1));
+                        }
+                    });
+                    tempMatrixRows.push({
+                        agent: item.agent,
+                        channel: item.channel,
+                        isAvg: false,
+                        weeks: weekScores
+                    });
+                });
+
+                let avgWeeks = {};
+                sortedWeeks.forEach(w => {
+                    let totalSum = 0, totalCount = 0;
+                    tempMatrixRows.forEach(row => {
+                        if (row.weeks[w] !== undefined) {
+                            totalSum += row.weeks[w];
+                            totalCount += 1;
+                        }
+                    });
+                    if (totalCount > 0) {
+                        avgWeeks[w] = parseFloat((totalSum / totalCount).toFixed(1));
+                    }
+                });
+
+                tempMatrixRows.push({
+                    agent: 'AVG',
+                    channel: '',
+                    isAvg: true,
+                    weeks: avgWeeks
+                });
+
+                await saveToSupabase(tempMatrixRows, tempFindings);
+                await loadFromSupabase();
+
+                alert(`Berhasil mengimpor ${files.length} file Excel sekaligus dan memperbarui database!`);
+            } catch (err) {
+                alert('Terjadi kesalahan saat memproses file Excel: ' + err.message);
+                console.error(err);
+            } finally {
+                uploadBtn.innerText = "Import Excel QA (Data Mentah)";
+                uploadBtn.style.pointerEvents = 'auto';
+                event.target.value = '';
+            }
+        }
+
+        async function resetSupabaseData() {
+            let confirmation = confirm("Apakah Anda yakin ingin MENGHAPUS SEMUA data QA Matrix dan Findings yang tersimpan di Supabase?");
+            if (!confirmation) return;
+
+            try {
+                await supabaseClient.from('qa_matrix').delete().neq('id', 0);
+                await supabaseClient.from('qa_findings').delete().neq('id', 0);
+
+                qaReportData = { weeks: [], weekLabelsMap: {}, matrixAgents: [], findingAgents: [], findingWeeks: [], matrixRows: [], findings: [] };
+
+                document.getElementById('qaMatrixContainer').innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada data di database.</p>`;
+                document.getElementById('qaFindingContainer').innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada data di database.</p>`;
+                
+                document.getElementById('filterMatrixAgent').innerHTML = '<option value="all">Semua Anggota Tim</option>';
+                document.getElementById('filterFindingAgent').innerHTML = '<option value="all">Semua Anggota Tim</option>';
+                document.getElementById('filterFindingWeek').innerHTML = '<option value="all">Semua Minggu</option>';
+
+                alert("Semua data berhasil dibersihkan.");
+            } catch (err) {
+                alert("Terjadi kesalahan saat menghapus data: " + err.message);
+            }
+        }
+
+        function combinedRowStrIncludesCall(rowArray) {
+            return rowArray.some(cellVal => {
+                if (!cellVal) return false;
+                let text = cellVal.toString().toLowerCase();
+                return text.includes('frontline call') || text.includes('(call)');
+            });
+        }
+
+        function initFilters() {
+            const matrixAgentSelect = document.getElementById('filterMatrixAgent');
+            let currentMatrixVal = matrixAgentSelect.value;
+            matrixAgentSelect.innerHTML = '<option value="all">Semua Anggota Tim</option>';
+            MY_TEAM_AGENTS.forEach(agent => {
+                if (qaReportData.matrixAgents.includes(agent)) {
+                    matrixAgentSelect.innerHTML += `<option value="${agent}">${agent}</option>`;
+                }
+            });
+            matrixAgentSelect.value = (currentMatrixVal && matrixAgentSelect.querySelector(`option[value="${currentMatrixVal}"]`)) ? currentMatrixVal : 'all';
+
+            const findingAgentSelect = document.getElementById('filterFindingAgent');
+            let currentFindingAgentVal = findingAgentSelect.value;
+            findingAgentSelect.innerHTML = '<option value="all">Semua Anggota Tim</option>';
+            MY_TEAM_AGENTS.forEach(agent => {
+                if (qaReportData.findingAgents.includes(agent)) {
+                    findingAgentSelect.innerHTML += `<option value="${agent}">${agent}</option>`;
+                }
+            });
+            findingAgentSelect.value = (currentFindingAgentVal && findingAgentSelect.querySelector(`option[value="${currentFindingAgentVal}"]`)) ? currentFindingAgentVal : 'all';
+
+            const weekSelect = document.getElementById('filterFindingWeek');
+            let currentWeekVal = weekSelect.value;
+            weekSelect.innerHTML = '<option value="all">Semua Minggu</option>';
+            qaReportData.findingWeeks.forEach(week => {
+                let displayLabel = qaReportData.weekLabelsMap[week] || getWeekDateRange2026(week);
+                weekSelect.innerHTML += `<option value="${week}">${displayLabel}</option>`;
+            });
+            weekSelect.value = qaReportData.findingWeeks.includes(currentWeekVal) ? currentWeekVal : 'all';
+        }
+
+        function getScoreBadgeColor(val) {
+            if (typeof val === 'number') {
+                if (val >= 95.0) return 'bg-green-100 text-green-800 font-bold';
+                else if (val >= 90.0) return 'bg-yellow-100 text-yellow-800 font-bold';
+                else return 'bg-pink-100 text-pink-800 font-bold';
+            }
+            return 'bg-gray-200 text-gray-700 font-medium text-xs';
+        }
+
+        function renderMatrixTable() {
+            const matrixContainer = document.getElementById('qaMatrixContainer');
+            const selectedAgent = document.getElementById('filterMatrixAgent').value;
+
+            if (qaReportData.matrixRows.length === 0) {
+                matrixContainer.innerHTML = `<p class="text-gray-500 text-center py-4">Belum ada data nilai QA.</p>`;
+                return;
+            }
+
+            let weeksToDisplay = qaReportData.weeks;
+
+            let regularRows = qaReportData.matrixRows.filter(r => !r.isAvg && r.agent !== 'AVG');
+            let avgRows = qaReportData.matrixRows.filter(r => r.isAvg || r.agent === 'AVG');
+
+            if (selectedAgent !== 'all') {
+                regularRows = regularRows.filter(r => (r.agent || '').trim().toLowerCase() === selectedAgent.trim().toLowerCase());
+            }
+
+            regularRows.sort((a, b) => {
+                let agentA = (a.agent || '').toLowerCase();
+                let agentB = (b.agent || '').toLowerCase();
+                if (agentA < agentB) return -1;
+                if (agentA > agentB) return 1;
+                return 0;
+            });
+
+            let sortedMatrixRows = selectedAgent === 'all' ? [...regularRows, ...avgRows] : [...regularRows];
+
+            let tableHTML = `
+                <table class="min-w-full divide-y divide-gray-200 bg-white rounded-md text-sm border border-collapse">
+                    <thead class="bg-gray-100 text-gray-700">
+                        <tr>
+                            <th class="px-4 py-2 text-left border-r sticky-col whitespace-nowrap">Nama Agent</th>
+            `;
+            
+            weeksToDisplay.forEach(week => {
+                let fullLabel = qaReportData.weekLabelsMap[week] || getWeekDateRange2026(week);
+                let parts = fullLabel.split(' (');
+                tableHTML += `<th class="px-3 py-2 text-center border-r whitespace-nowrap">${parts[0]}<br><span class="text-xs font-normal text-gray-500">(${parts[1] || ''}</span></th>`;
+            });
+
+            tableHTML += `</tr></thead><tbody class="divide-y divide-gray-200 text-gray-600">`;
+
+            sortedMatrixRows.forEach(row => {
+                let isAverageRow = row.isAvg || row.agent === 'AVG';
+                let rowBg = isAverageRow ? 'bg-gray-100 font-bold text-gray-900' : '';
+                tableHTML += `<tr class="${rowBg}">`;
+                tableHTML += `<td class="px-4 py-2 border-r font-medium sticky-col whitespace-nowrap">${row.agent}</td>`;
+
+                weeksToDisplay.forEach(week => {
+                    let val = row.weeks[week];
+                    let scoreDisplay = val !== undefined ? val.toFixed(1) : '-';
+                    let badgeColor = isAverageRow ? 'text-gray-900 font-bold' : getScoreBadgeColor(val);
+                    tableHTML += `<td class="px-3 py-2 text-center border-r"><span class="px-2 py-1 rounded ${badgeColor}">${scoreDisplay}</span></td>`;
+                });
+                tableHTML += `</tr>`;
+            });
+
+            tableHTML += `</tbody></table>`;
+            matrixContainer.innerHTML = tableHTML;
+        }
+
+        function renderFindingTable() {
+            const selectedAgent = document.getElementById('filterFindingAgent').value;
+            const selectedWeek = document.getElementById('filterFindingWeek').value;
+            const findingContainer = document.getElementById('qaFindingContainer');
+
+            let filteredFindings = qaReportData.findings.filter(f => {
+                let matchAgent = (selectedAgent === 'all' || (f.agentName || '').trim().toLowerCase() === selectedAgent.trim().toLowerCase());
+                let matchWeek = (selectedWeek === 'all' || f.week === selectedWeek);
+                return matchAgent && matchWeek;
+            });
+
+            if (filteredFindings.length === 0) {
+                findingContainer.innerHTML = `<p class="text-gray-500 text-center py-4">Tidak ada data detail finding QA yang cocok dengan filter.</p>`;
+                return;
+            }
+
+            filteredFindings.sort((a, b) => {
+                let numWeekA = parseInt((a.week || '').replace(/\D/g, '')) || 0;
+                let numWeekB = parseInt((b.week || '').replace(/\D/g, '')) || 0;
+
+                if (numWeekB !== numWeekA) {
+                    return numWeekB - numWeekA;
+                }
+
+                let nameA = (a.agentName || '').toLowerCase();
+                let nameB = (b.agentName || '').toLowerCase();
+                if (nameA < nameB) return -1;
+                if (nameA > nameB) return 1;
+                return 0;
+            });
+
+            let html = `
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 bg-white rounded-md overflow-hidden text-sm border">
+                        <thead class="bg-gray-100 text-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 text-left">MS / Activity</th>
+                                <th class="px-4 py-3 text-left">Nama Agent</th>
+                                <th class="px-4 py-3 text-left">Komentar QA</th>
+                                <th class="px-4 py-3 text-left">Rekomendasi QA</th>
+                                <th class="px-4 py-3 text-center">Minggu</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 text-gray-700">
+            `;
+
+            filteredFindings.forEach(f => {
+                let weekDisplay = qaReportData.weekLabelsMap[f.week] || getWeekDateRange2026(f.week);
+                let findingDisplay = (f.finding && f.finding !== "") ? f.finding : "-";
+                html += `
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 font-mono text-blue-600 font-medium">${f.ms}</td>
+                        <td class="px-4 py-3 font-bold text-gray-800">${f.agentName}</td>
+                        <td class="px-4 py-3 italic text-gray-600">"${f.originalFinding || '-'}"</td>
+                        <td class="px-4 py-3 text-gray-800 font-medium">${findingDisplay}</td>
+                        <td class="px-4 py-3 text-center"><span class="text-blue-700 px-2 py-0.5 whitespace-nowrap">${weekDisplay}</span></td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table></div>`;
+            findingContainer.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
